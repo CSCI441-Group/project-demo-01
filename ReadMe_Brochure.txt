@@ -1,5 +1,11 @@
 ReadMe - Brochure
 
+**cover page: did not include table of contents.**
+
+2 pages
+
+Brochure breakdown--
+
 Front-Page
 
 Title
