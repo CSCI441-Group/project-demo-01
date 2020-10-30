@@ -6,21 +6,82 @@
 
 #include "sqlite3.h"
 #include "employee.h"
+#include "menu.h"
+
+#define INDEX_MENU_ID 0
+#define INDEX_MENU_PARENT_ID 1
+#define INDEX_MENU_NAME 2
+
+#define INDEX_ITEM_ID 0
+#define INDEX_ITEM_MENU_ID 1
+#define INDEX_ITEM_NAME 2
+#define INDEX_ITEM_PRICE 3
+
+#define INDEX_ADJUSTMENT_GROUP_ID 0
+#define INDEX_ADJUSTMENT_GROUP_ITEM_ID 1
+#define INDEX_ADJUSTMENT_GROUP_NAME 2
+
+#define INDEX_ADJUSTMENT_ID 0
+#define INDEX_ADJUSTMENT_ADJUSTMENT_GROUP_ID 1
+#define INDEX_ADJUSTMENT_NAME 2
+#define INDEX_ADJUSTMENT_PRICE 3
+
+#define INDEX_TABLE_ID 0
+#define INDEX_TABLE_STATUS 1
+
+#define INDEX_PARTY_ID 0
+#define INDEX_PARTY_TABLE_ID 1
+#define INDEX_PARTY_SIZE 2
+#define INDEX_PARTY_STATUS 3
+
+#define INDEX_EMPLOYEE_ID 0
+#define INDEX_EMPLOYEE_FIRST_NAME 1
+#define INDEX_EMPLOYEE_LAST_NAME 2
+#define INDEX_EMPLOYEE_PASSWORD 3
+#define INDEX_EMPLOYEE_TYPE 4
+
+#define INDEX_ORDER_ID 0
+#define INDEX_ORDER_PARTY_ID 1
+#define INDEX_ORDER_WAITER_ID 2
+#define INDEX_ORDER_SIZE 3
+#define INDEX_ORDER_STATUS 4
+#define INDEX_ORDER_TOTAL 5
+
+#define INDEX_ORDER_ITEM_ID 0
+#define INDEX_ORDER_ITEM_ORDER_ID 1
+#define INDEX_ORDER_ITEM_ITEM_ID 2
+
+#define INDEX_ORDER_ITEM_ADJUSTMENT_ORDER_ITEM_ID 0
+#define INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID 1
+
+#define BASE_MENU_ID 0
 
 class DatabaseInterface
 {
 public:
 	DatabaseInterface();
 	~DatabaseInterface();
-	
-	void addCategory(Certification& certification, std::string& description);
-	void addEmployee(Certification& certification, Employee& employee);
 
-	void listEmployees();
+	const Employee::Type getEmployeeType(const Certification& certification);
+
+	bool addEmployee(const Certification& certification, const Employee& employee);
+	bool addMenu(const Certification& certification, const int parentId, const std::string& name);
+	bool addItem(const Certification& certification, const int menuId, const std::string& name, const double price);
+	bool addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name);
+	bool addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price);
+	bool addTable(const Certification& certification);
+
+	bool updateTableStatus(const Certification& certification, const int tableId, const Table::Status newStatus);
+
+	// Fills employees with all employees in the database
+	void getEmployees(std::vector<Employee>& employees);
+	void getMenu(Menu& menu);
+	void getTables(std::vector<Table>& tables);
 
 private:
 	void createTables();
-	Employee::Type getEmployeeType(Certification& certification);
+	void insertSql();
+	void querySql(std::vector<std::vector<std::string>>& results);
 	
 	static int callback(void* data, int argc, char** argv, char** azColName);
 	
@@ -29,85 +90,3 @@ private:
 	char* errorMessage{};
 	std::string sql{};
 };
-
-namespace sql
-{
-	const std::string CreateTables = "CREATE TABLE IF NOT EXISTS category(		\
-		id INTEGER PRIMARY KEY,													\
-		description TEXT														\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS item(										\
-			id INTEGER PRIMARY KEY,												\
-			category_id INTEGER,												\
-			name TEXT,															\
-			price REAL,															\
-			FOREIGN KEY(category_id) REFERENCES category(id)					\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS adjustment_group(							\
-			id INTEGER PRIMARY KEY,												\
-			item_id INTEGER,													\
-			description TEXT,													\
-			FOREIGN KEY(item_id) REFERENCES item(id)							\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS adjustment(									\
-			id INTEGER PRIMARY KEY,												\
-			adjustment_group_id INTEGER,										\
-			description TEXT,													\
-			price REAL,															\
-			FOREIGN KEY(adjustment_group_id) REFERENCES adjustment_group(id)	\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS table_(										\
-			id INTEGER PRIMARY KEY,												\
-			status INTEGER														\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS party(										\
-			id INTEGER PRIMARY KEY,												\
-			table_id INTEGER,													\
-			size INTEGER,														\
-			status INTEGER,														\
-			FOREIGN KEY(table_id) REFERENCES table_(id)							\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS employee(									\
-			id INTEGER PRIMARY KEY,												\
-			first_name TEXT,													\
-			last_name TEXT,														\
-			password TEXT,														\
-			type INTEGER														\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS order_(										\
-			id INTEGER PRIMARY KEY,												\
-			party_id INTEGER,													\
-			waiter_id INTEGER,													\
-			size INTEGER,														\
-			status INTEGER,														\
-			total REAL,															\
-			FOREIGN KEY(party_id) REFERENCES party(id),							\
-			FOREIGN KEY(waiter_id) REFERENCES employee(id)						\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS order_item(									\
-			id INTEGER PRIMARY KEY,												\
-			order_id INTEGER,													\
-			item_id INTEGER,													\
-			FOREIGN KEY(order_id) REFERENCES order_(id),						\
-			FOREIGN KEY(item_id) REFERENCES item(id)							\
-		);																		\
-																				\
-		CREATE TABLE IF NOT EXISTS order_item_adjustment(						\
-			order_item_id INTEGER,												\
-			adjustment_id INTEGER,												\
-			PRIMARY KEY(order_item_id, adjustment_id),							\
-			FOREIGN KEY(order_item_id) REFERENCES order_item(id),				\
-			FOREIGN KEY(adjustment_id) REFERENCES adjustment(id)				\
-		);																		\
-																				\
-		INSERT OR IGNORE INTO employee(id, first_name, last_name, password, type)			\
-		VALUES(0, 'Admin', 'User', 'password', 0);";			
-}

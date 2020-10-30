@@ -1,53 +1,72 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <vector>
 
-class Menu
+
+struct Adjustment
 {
-public:
-
-private:
-    std::vector<Category> categories;
-};
-
-class Category
-{
-public:
-
-private:
     int id{};
-    std::string category{};
-    std::vector<Item> items{};
-};
-
-class Item
-{
-public:
-
-private:
-    int id;
     std::string name;
-    double price;
-    std::vector<AdjustmentGroup> adjustmentGroups;
+    double price{};
 };
 
-class AdjustmentGroup
+struct AdjustmentGroup
 {
-public:
-
-private:
-    int id;
-    std::string description;
+    int id{};
+    std::string name;
     std::vector<Adjustment> adjustments;
 };
 
-class Adjustment
+struct Item
+{
+    Item(const int id, const std::string& name, const double price) :
+        id{ id }, name{ name }, price{ price }
+    {}
+
+    int id{};
+    std::string name;
+    double price{};
+    std::vector<AdjustmentGroup> adjustmentGroups;
+};
+
+struct Menu
+{
+    Menu()
+    {}
+
+    Menu(const int id, const std::string& name) :
+        id{ id }, name{ name }
+    {}
+
+    void print(int level = 0) const;
+    const bool hasMenu(int search) const;
+    const bool hasItem(int search) const;
+    const bool hasAdjustmentGroup(int search) const;
+
+    int id{};
+    std::string name;
+    std::vector<Menu> submenus;
+    std::vector<Item> items;
+};
+
+struct Table
 {
 public:
+    enum class Status
+    {
+        Error = -1,
+        OutOfUse = 0,
+        Ready,
+        Seated,
+        Dirty
+    };
 
-private:
-    int id;
-    std::string description;
-    double price;
+    Table(int id, Status status) :
+        id{ id }, status{ status }
+    {}
+
+    int id{};
+    Status status{};
 };
