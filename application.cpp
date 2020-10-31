@@ -32,13 +32,23 @@ void Application::getChoice()
 }
 
 template<typename T>
-void Application::getInput(T& value)
+ReturnCode Application::getInput(T& value)
 {
-    std::cin >> value;
+    try
+    {
+        std::cin >> value;
 
-    // Clears the buffer in case an invalid string was input
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        // Clears the buffer in case an invalid string was input
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+        return ReturnCode::Success;
+    }
+    catch (...)
+    {
+        invalidInput();
+        return ReturnCode::InvalidInput;
+    }
 }
 
 void Application::mainLoop()
@@ -58,14 +68,13 @@ void Application::mainLoop()
 
 void Application::invalidInput()
 {
-    std::cout << "Invalid input!\n";
-
+    std::cout << "\nInvalid input!\n";
     pressToContinue();
 }
 
 void Application::pressToContinue()
 {
-    std::cout << "Press any button to continue... ";
+    std::cout << "\nPress any button to continue... ";
     std::cin.get();
 }
 
@@ -103,12 +112,28 @@ std::string Application::getTableStatusString(Table::Status status)
     }
 }
 
+void Application::error()
+{
+    std::cout << "An error occurred!" << std::endl;
+    pressToContinue();
+}
+
+void Application::uncertified()
+{
+    std::cout << "You lack the certification to perform this action!" << std::endl;
+    pressToContinue();
+}
+
 void Application::printEmployeeList()
 {
     system("CLS");
 
     std::vector<Employee> employees;
-    databaseInterface.getEmployees(employees);
+    if (databaseInterface.getEmployees(employees) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
 
     std::cout << "Employees:\n";
     for (const auto& employee : employees)
@@ -122,7 +147,11 @@ void Application::printTables()
     system("CLS");
 
     std::vector<Table> tables{};
-    databaseInterface.getTables(tables);
+    if (databaseInterface.getTables(tables) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
 
     if (tables.empty())
         std::cout << "There are no tables." << std::endl;
@@ -133,192 +162,211 @@ void Application::printTables()
             std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
     }
 
-    std::cout << '\n';
     pressToContinue();
 }
 
 void Application::updateTable()
 {
-    try
+    system("CLS");
+
+    Employee::Type type;
+    if (databaseInterface.getEmployeeType(certification, type) != ReturnCode::Success)
     {
-        system("CLS");
+        error();
+        return;
+    }
 
-        auto type{ databaseInterface.getEmployeeType(certification) };
-        int id;
-        std::vector<Table> tables{};
-        databaseInterface.getTables(tables);
-        Table::Status status;
-        if (tables.empty())
-        {
-            std::cout << "There are no tables." << std::endl;
-        }
-        else
-        {
-            std::cout << "Tables:\n\n";
-
-            switch (type)
-            {
-            case Employee::Type::Manager:
-                for (const auto& table : tables)
-                    std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
-
-                std::cout << "\nEnter the table's data:\nID: ";
-                getInput(id);
-                std::cout << "New status (Out of use: 0 / Ready: 1 / Seated: 2 / Dirty: 3): ";
-                int statusInt;
-                getInput(statusInt);
-                status = static_cast<Table::Status>(statusInt);
-
-                if (databaseInterface.updateTableStatus(certification, id, status))
-                {
-                    std::cout << "Table updated successfully.\n";
-                    break;
-                }
-                else
-                {
-                    invalidInput();
-                    break;
-                }
-
-            case Employee::Type::Host:
-                for (int i{}; i < tables.size(); i++)
-                {
-                    if (tables[i].status != Table::Status::Ready)
-                    {
-                        tables.erase(tables.begin() + i);
-                        --i;
-                    }
-                }
-
-                if (tables.empty())
-                {
-                    std::cout << "There are no tables you can update." << std::endl;
-                    break;
-                }
-
-                for (const auto& table : tables)
-                    std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
-
-                std::cout << "\nEnter the ID of the table to mark as seated: ";
-                getInput(id);
-
-                if (databaseInterface.updateTableStatus(certification, id, Table::Status::Seated))
-                {
-                    std::cout << "\nTable updated successfully.\n";
-                    break;
-                }
-                else
-                {
-                    invalidInput();
-                    break;
-                }
-
-            case Employee::Type::Waiter:
-                for (int i{}; i < tables.size(); i++)
-                {
-                    if (tables[i].status != Table::Status::Seated)
-                    {
-                        tables.erase(tables.begin() + i);
-                        --i;
-                    }
-                }
-
-                if (tables.empty())
-                {
-                    std::cout << "There are no tables you can update." << std::endl;
-                    break;
-                }
-
-                for (const auto& table : tables)
-                    std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
-
-                std::cout << "\nEnter the ID of the table to mark as dirty: ";
-                getInput(id);
-
-                if (databaseInterface.updateTableStatus(certification, id, Table::Status::Dirty))
-                {
-                    std::cout << "\nTable updated successfully.\n";
-                    break;
-                }
-                else
-                {
-                    invalidInput();
-                    break;
-                }
-            case Employee::Type::Busser:
-                for (int i{}; i < tables.size(); i++)
-                {
-                    if (tables[i].status != Table::Status::Dirty)
-                    {
-                        tables.erase(tables.begin() + i);
-                        --i;
-                    }
-                }
-
-                if (tables.empty())
-                {
-                    std::cout << "There are no tables you can update." << std::endl;
-                    break;
-                }
-
-                for (const auto& table : tables)
-                    std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
-
-                std::cout << "\nEnter the ID of the table to mark as ready: ";
-                getInput(id);
-
-                if (databaseInterface.updateTableStatus(certification, id, Table::Status::Ready))
-                {
-                    std::cout << "\nTable updated successfully.\n";
-                    break;
-                }
-                else
-                {
-                    invalidInput();
-                    break;
-                }
-            }
-        }
-
-        std::cout << '\n';
+    int id;
+    std::vector<Table> tables{};
+    ReturnCode rc;
+    if (databaseInterface.getTables(tables) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    Table::Status status;
+    if (tables.empty())
+    {
+        std::cout << "There are no tables." << std::endl;
         pressToContinue();
     }
-    catch (...)
+    else
     {
-        invalidInput();
+        std::cout << "Tables:\n\n";
+
+        switch (type)
+        {
+        case Employee::Type::Manager:
+            for (const auto& table : tables)
+                std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
+
+            std::cout << "\nEnter the table's data:\nID: ";
+            getInput(id);
+            std::cout << "New status (Out of use: 0 / Ready: 1 / Seated: 2 / Dirty: 3): ";
+            int statusInt;
+            getInput(statusInt);
+            status = static_cast<Table::Status>(statusInt);
+
+            rc = databaseInterface.updateTableStatus(certification, id, status);
+            if (rc == ReturnCode::Success)
+            {
+                std::cout << "\nTable updated successfully.\n";
+                pressToContinue();
+            }
+            else if (rc == ReturnCode::NonexistentId)
+                std::cout << "\nA table with ID " << id << " does not exist!\n";
+            else if (rc == ReturnCode::Error)
+                error();
+
+            break;
+
+        case Employee::Type::Host:
+            for (int i{}; i < tables.size(); i++)
+            {
+                if (tables[i].status != Table::Status::Ready)
+                {
+                    tables.erase(tables.begin() + i);
+                    --i;
+                }
+            }
+
+            if (tables.empty())
+            {
+                std::cout << "There are no tables you can update." << std::endl;
+                break;
+            }
+
+            for (const auto& table : tables)
+                std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
+
+            std::cout << "\nEnter the ID of the table to mark as seated: ";
+            getInput(id);
+
+            rc = databaseInterface.updateTableStatus(certification, id, Table::Status::Seated);
+            if (rc == ReturnCode::Success)
+            {
+                std::cout << "\nTable updated successfully.\n";
+                pressToContinue();
+            }
+            else if (rc == ReturnCode::NonexistentId)
+                std::cout << "\nA table with ID " << id << " does not exist!\n";
+            else if (rc == ReturnCode::Error)
+                error();
+
+            break;
+
+        case Employee::Type::Waiter:
+            for (int i{}; i < tables.size(); i++)
+            {
+                if (tables[i].status != Table::Status::Seated)
+                {
+                    tables.erase(tables.begin() + i);
+                    --i;
+                }
+            }
+
+            if (tables.empty())
+            {
+                std::cout << "There are no tables you can update." << std::endl;
+                break;
+            }
+
+            for (const auto& table : tables)
+                std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
+
+            std::cout << "\nEnter the ID of the table to mark as dirty: ";
+            getInput(id);
+
+            rc = databaseInterface.updateTableStatus(certification, id, Table::Status::Dirty);
+            if (rc == ReturnCode::Success)
+            {
+                std::cout << "\nTable updated successfully.\n";
+                pressToContinue();
+            }
+            else if (rc == ReturnCode::NonexistentId)
+                std::cout << "\nA table with ID " << id << " does not exist!\n";
+            else if (rc == ReturnCode::Error)
+                error();
+
+            break;
+
+        case Employee::Type::Busser:
+            for (int i{}; i < tables.size(); i++)
+            {
+                if (tables[i].status != Table::Status::Dirty)
+                {
+                    tables.erase(tables.begin() + i);
+                    --i;
+                }
+            }
+
+            if (tables.empty())
+            {
+                std::cout << "There are no tables you can update." << std::endl;
+                break;
+            }
+
+            for (const auto& table : tables)
+                std::cout << std::string{ "ID: " + std::to_string(table.id) + "\tStatus: " + getTableStatusString(table.status) + '\n' };
+
+            std::cout << "\nEnter the ID of the table to mark as ready: ";
+            getInput(id);
+
+            rc = databaseInterface.updateTableStatus(certification, id, Table::Status::Ready);
+            if (rc == ReturnCode::Success)
+            {
+                std::cout << "\nTable updated successfully.\n";
+                pressToContinue();
+            }
+            else if (rc == ReturnCode::NonexistentId)
+                std::cout << "\nA table with ID " << id << " does not exist!\n";
+            else if (rc == ReturnCode::Error)
+                error();
+
+            break;
+        }
     }
 }
 
 void Application::login()
 {
-    try
+    printEmployeeList();
+
+    std::cout << "\nEnter your login information.\nID: ";
+    getInput(certification.id);
+    std::cout << "Password: ";
+    getInput(certification.password);
+
+    Employee::Type type;
+    if (databaseInterface.getEmployeeType(certification, type) != ReturnCode::Success)
     {
-        printEmployeeList();
-
-        std::cout << "\nEnter your login information:\nID: ";
-        getInput(certification.id);
-        std::cout << "Password: ";
-        getInput(certification.password);
-
-        Employee::Type type{ databaseInterface.getEmployeeType(certification) };
-        switch (type)
-        {
-        case Employee::Type::Manager:
-            userMenuStack.push(managerMenu);
-            break;
-        case Employee::Type::Waiter:
-            userMenuStack.push(waiterMenu);
-            break;
-        case Employee::Type::Error:
-            std::cout << "\nIncorrect login information.  Press any key to continue: ";
-            std::cin.get();
-        default:
-            break;
-        }
+        std::cout << "\nIncorrect login information.";
+        pressToContinue();
+        return;
     }
-    catch (...)
+
+    switch (type)
     {
-        invalidInput();
+    case Employee::Type::Manager:
+        userMenuStack.push(managerMenu);
+        break;
+    
+    case Employee::Type::Host:
+        userMenuStack.push(hostMenu);
+        break;
+    
+    case Employee::Type::Waiter:
+        userMenuStack.push(waiterMenu);
+        break;
+
+    case Employee::Type::Cook:
+        userMenuStack.push(cookMenu);
+        break;
+
+    case Employee::Type::Busser:
+        userMenuStack.push(busserMenu);
+        break;
+    
     }
 }
 
@@ -339,36 +387,96 @@ void Application::logout()
         userMenuStack.pop();
 }
 
-void Application::addEmployee()
+void Application::addExampleEmployees()
 {
-    try
+    system("CLS");
+
+    Certification password{ "password" };
+    std::vector<Employee> employees{
+        Employee{ password, Employee::Type::Manager, "John", "Smith" },
+        Employee{ password, Employee::Type::Host, "Jane", "Williams" },
+        Employee{ password, Employee::Type::Waiter, "Ron", "Brown" },
+        Employee{ password, Employee::Type::Cook, "Stephanie", "Davis" },
+        Employee{ password, Employee::Type::Busser, "David", "Miller" },
+    };
+
+    for (const auto& employee : employees)
+        databaseInterface.addEmployee(certification, employee);
+
+    std::cout << "Employees added successfully.\n";
+    pressToContinue();
+}
+
+void Application::addParty()
+{
+    system("CLS");
+
+    std::vector<Table> tables{};
+    if (databaseInterface.getTables(tables) != ReturnCode::Success)
     {
-        system("CLS");
-
-        std::string firstName, lastName, password;
-        int type;
-        std::cout << "Enter the employee's first name: ";
-        std::cin >> firstName;
-        std::cout << "Enter the employee's last name: ";
-        std::cin >> lastName;
-        std::cout << "Enter the employee's password: ";
-        std::cin >> password;
-        std::cout << "Enter the employee's type: ";
-        std::cin >> type;
-
-        Employee employee{ Certification{ password }, static_cast<Employee::Type>(type), firstName, lastName };
-
-        if (!databaseInterface.addEmployee(certification, employee))
-            throw std::exception{};
+        error();
+        return;
     }
-    catch (std::exception e)
+    if (tables.empty())
+    {
+        std::cout << "There are no tables available.\n";
+        pressToContinue();
+    }
+
+    //std::cout << "\nEnter the "
+
+    std::cout << "Enter the party's size: ";
+    int size;
+    if (getInput(size) != ReturnCode::Success)
     {
         invalidInput();
+        return;
     }
+    
+    auto rc{ databaseInterface.addParty(certification, size) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "Party added successfully.\n";
+        pressToContinue();
+    }
+    else if (rc == ReturnCode::Uncertified)
+        uncertified();
+    else if (rc == ReturnCode::Error)
+        error();
+}
+
+void Application::addEmployee()
+{
+    system("CLS");
+
+    std::string firstName, lastName, password;
+    int type;
+    std::cout << "Enter the employee's first name: ";
+    std::cin >> firstName;
+    std::cout << "Enter the employee's last name: ";
+    std::cin >> lastName;
+    std::cout << "Enter the employee's password: ";
+    std::cin >> password;
+    std::cout << "Enter the employee's type: ";
+    std::cin >> type;
+
+    Employee employee{ Certification{ password }, static_cast<Employee::Type>(type), firstName, lastName };
+    auto rc{ databaseInterface.addEmployee(certification, employee) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nEmployee added successfully.\n";
+        pressToContinue();
+    }
+    else if (rc == ReturnCode::Uncertified)
+        uncertified();
+    else if (rc == ReturnCode::Error)
+        error();
 }
 
 void Application::addExampleMenu()
 {
+    system("CLS");
+
     std::vector<std::string> menus{
         "Beverages",
         "Appetizers",
@@ -396,13 +504,18 @@ void Application::addExampleMenu()
 
 void Application::addTable()
 {
-    if (databaseInterface.addTable(certification))
+    system("CLS");
+
+    auto rc{ databaseInterface.addTable(certification) };
+    if (rc == ReturnCode::Success)
     {
         std::cout << "Table added successfully.\n";
         pressToContinue();
     }
-    else
-        invalidInput();
+    else if (rc == ReturnCode::Uncertified)
+        uncertified();
+    else if (rc == ReturnCode::Error)
+        error();
 }
 
 void Application::printMenu()
@@ -410,12 +523,14 @@ void Application::printMenu()
     system("CLS");
 
     Menu menu;
-    // CRASH 123529
-    databaseInterface.getMenu(menu);
+    if (databaseInterface.getMenu(menu) == ReturnCode::Success)
+    {
+        std::cout << '\n';
+        menu.print();
+        std::cout << '\n';
 
-    std::cout << '\n';
-    menu.print();
-    std::cout << '\n';
-
-    pressToContinue();
+        pressToContinue();
+    }
+    else
+        error();
 }

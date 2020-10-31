@@ -21,7 +21,6 @@ struct Employee
 public:
     enum class Type
     {
-        Error = -1,
         Manager = 0,
         Host = 1,
         Waiter = 2,

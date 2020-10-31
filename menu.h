@@ -53,7 +53,6 @@ struct Menu
 
 struct Table
 {
-public:
     enum class Status
     {
         Error = -1,
@@ -69,4 +68,64 @@ public:
 
     int id{};
     Status status{};
+};
+
+struct Party
+{
+    enum class Status
+    {
+        InWaitQueue,
+        Seated,
+        Finished
+    };
+
+    Party(int id, int tableId, int size, Status status) :
+        id{ id }, tableId{ tableId }, size{ size }, status{ status }
+    {}
+
+    int id{};
+    int tableId{};
+    int size{};
+    Status status{};
+};
+
+struct OrderItemAdjustment
+{
+
+};
+
+struct OrderItem
+{
+    OrderItem(const int id, const int itemId, const std::string& name, const double price) :
+        id{ id }, itemId{ itemId }, name{ name }, price{ price }
+    {}
+
+    int id{};
+    int itemId{};
+    std::string name{};
+    double price{};
+    std::vector<OrderItemAdjustment> adjustments{};
+};
+
+struct Order
+{
+    enum class Status
+    {
+        Placing,
+        Placed,
+        Made,
+        Delivered,
+        Paid,
+        Cancelled
+    };
+
+    Order(int id, int partyId, Status status, double total) :
+        id{ id }, partyId{ partyId }, status{ status }, total{ total }
+    {}
+
+    int id{};
+    int partyId{};
+    Status status{};
+    double total{};
+    std::vector<OrderItem> items;
 };

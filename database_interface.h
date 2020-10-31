@@ -27,7 +27,8 @@
 #define INDEX_ADJUSTMENT_PRICE 3
 
 #define INDEX_TABLE_ID 0
-#define INDEX_TABLE_STATUS 1
+#define INDEX_TABLE_WAITER_ID 1
+#define INDEX_TABLE_STATUS 2
 
 #define INDEX_PARTY_ID 0
 #define INDEX_PARTY_TABLE_ID 1
@@ -42,10 +43,8 @@
 
 #define INDEX_ORDER_ID 0
 #define INDEX_ORDER_PARTY_ID 1
-#define INDEX_ORDER_WAITER_ID 2
-#define INDEX_ORDER_SIZE 3
-#define INDEX_ORDER_STATUS 4
-#define INDEX_ORDER_TOTAL 5
+#define INDEX_ORDER_STATUS 2
+#define INDEX_ORDER_TOTAL 3
 
 #define INDEX_ORDER_ITEM_ID 0
 #define INDEX_ORDER_ITEM_ORDER_ID 1
@@ -56,32 +55,56 @@
 
 #define BASE_MENU_ID 0
 
+enum class ReturnCode
+{
+	Success,
+	Duplicate,
+	Uncertified,
+	NonexistentId,
+	InvalidInput,
+	TableInUse,
+	Error
+};
+
 class DatabaseInterface
 {
 public:
+
 	DatabaseInterface();
 	~DatabaseInterface();
 
-	const Employee::Type getEmployeeType(const Certification& certification);
+	ReturnCode getEmployeeType(const Certification& certification, Employee::Type& type);
 
-	bool addEmployee(const Certification& certification, const Employee& employee);
-	bool addMenu(const Certification& certification, const int parentId, const std::string& name);
-	bool addItem(const Certification& certification, const int menuId, const std::string& name, const double price);
-	bool addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name);
-	bool addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price);
-	bool addTable(const Certification& certification);
+	ReturnCode addEmployee(const Certification& certification, const Employee& employee);
+	ReturnCode addMenu(const Certification& certification, const int parentId, const std::string& name);
+	ReturnCode addItem(const Certification& certification, const int menuId, const std::string& name, const double price);
+	ReturnCode addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name);
+	ReturnCode addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price);
+	ReturnCode addTable(const Certification& certification);
+	ReturnCode addParty(const Certification& certification, const int size);
+	ReturnCode addOrder(const Certification& certification, const int partyId);
+	ReturnCode addOrderItem(const Certification& certification, const int orderId, const int itemId);
 
-	bool updateTableStatus(const Certification& certification, const int tableId, const Table::Status newStatus);
+	ReturnCode updateTableStatus(const Certification& certification, const int tableId, const Table::Status newStatus);
+	ReturnCode updatePartyStatus(const Certification& certification, const int partyId, const Party::Status newStatus);
+	ReturnCode updateOrderStatus(const Certification& certification, const int orderId, const Order::Status newStatus);
+
+	ReturnCode seatParty(const Certification& certification, const int partyId, const int tableId);
+	ReturnCode finishParty(const Certification& certification, const int partyId);
+	
 
 	// Fills employees with all employees in the database
-	void getEmployees(std::vector<Employee>& employees);
-	void getMenu(Menu& menu);
-	void getTables(std::vector<Table>& tables);
+	ReturnCode getEmployees(std::vector<Employee>& employees);
+	ReturnCode getMenu(Menu& menu);
+	ReturnCode getTables(std::vector<Table>& tables);
+	ReturnCode getParties(std::vector<Party>& parties);
+	ReturnCode getOrders(std::vector<Order>& orders);
+	ReturnCode getOrderItems(const int orderId, std::vector<OrderItem>& orderItems);
 
 private:
-	void createTables();
-	void insertSql();
-	void querySql(std::vector<std::vector<std::string>>& results);
+	ReturnCode createTables();
+	ReturnCode insertSql();
+	ReturnCode querySql(std::vector<std::vector<std::string>>& results);
 	
 	static int callback(void* data, int argc, char** argv, char** azColName);
 	

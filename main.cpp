@@ -9,9 +9,9 @@ int main()
 	{
 		Application application{};
 	}
-	catch (const char* errorMsg)
+	catch (...)
 	{
-		std::cout << errorMsg << std::endl;
+		std::cout << "An error occurred!" << std::endl;
 	}
 
 	return 0;
