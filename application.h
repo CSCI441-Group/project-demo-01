@@ -49,6 +49,11 @@ private:
     void addOrder();
     void addOrderItems();
     // DEPENDING ON CERTIFICATIONS PRINT POSSIBLE ORDER IDS AND STATUSES TO UPDATE, GET INPUT ORDER ID, USE DATABASE FUNCTION updateOrderStatus
+    void updateOrderAsPlaced();
+    void updateOrderAsMade();
+    void updateOrderAsDelivered();
+    void updateOrderAsPaid();
+    void updateOrderAsCanceled();
     void updateOrderStatus();
     void finishParty();
     
@@ -75,6 +80,10 @@ private:
         std::make_pair<std::string, void(Application::*)()>("Seat party", &Application::seatParty),
         std::make_pair<std::string, void(Application::*)()>("Add order", &Application::addOrder),
         std::make_pair<std::string, void(Application::*)()>("Add items to order", &Application::addOrderItems),
+        std::make_pair<std::string, void(Application::*)()>("Place order", &Application::updateOrderAsPlaced),
+        std::make_pair<std::string, void(Application::*)()>("Update order as made", &Application::updateOrderAsMade),
+        std::make_pair<std::string, void(Application::*)()>("Update order as delivered", &Application::updateOrderAsDelivered),
+        std::make_pair<std::string, void(Application::*)()>("Update order as paid", &Application::updateOrderAsPaid),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 
@@ -89,11 +98,15 @@ private:
         std::make_pair<std::string, void(Application::*)()>("Update table as dirty", &Application::updateTable),
         std::make_pair<std::string, void(Application::*)()>("Add order", &Application::addOrder),
         std::make_pair<std::string, void(Application::*)()>("Add items to order", &Application::addOrderItems),
+        std::make_pair<std::string, void(Application::*)()>("Place order", &Application::updateOrderAsPlaced),
+        std::make_pair<std::string, void(Application::*)()>("Update order as delivered", &Application::updateOrderAsDelivered),
+        std::make_pair<std::string, void(Application::*)()>("Update order as paid", &Application::updateOrderAsPaid),
         std::make_pair<std::string, void(Application::*)()>("Finish party", &Application::finishParty),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 
     std::vector<std::pair<std::string, void(Application::*)()>> cookMenu{
+        std::make_pair<std::string, void(Application::*)()>("Update order as made", &Application::updateOrderAsMade),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 

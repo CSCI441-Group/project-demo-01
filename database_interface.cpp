@@ -2,7 +2,7 @@
 
 DatabaseInterface::DatabaseInterface()
 {
-	rc = sqlite3_open("test.db", &database);
+	rc = sqlite3_open("restaurant.db", &database);
 
 	if (rc != SQLITE_OK)
 		throw sqlite3_errmsg(database);
@@ -190,7 +190,7 @@ ReturnCode DatabaseInterface::addOrderItem(const Certification& certification, c
 		std::vector<std::vector<std::string>> results;
 		if (querySql(results) != ReturnCode::Success)
 			return ReturnCode::Error;
-		if (results.empty())
+		if (results.empty() || static_cast<Order::Status>(std::stoi(results[0][INDEX_ORDER_STATUS])) != Order::Status::Placing)
 			return ReturnCode::NonexistentId;
 		
 		sql = std::string{ "SELECT * FROM item WHERE id=" + std::to_string(itemId) + ";" };

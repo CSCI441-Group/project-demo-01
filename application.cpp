@@ -167,6 +167,234 @@ void Application::printTables()
     pressToContinue();
 }
 
+void Application::updateOrderAsPaid()
+{
+    system("CLS");
+
+    std::vector<Order> orders{};
+    if (databaseInterface.getOrders(orders) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].status != Order::Status::Delivered)
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "There are no orders ready to be paid for.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Orders:\n";
+    for (const auto& order : orders)
+        std::cout << "\nOrder ID: " << order.id << "\nParty ID: " << order.partyId << '\n';
+
+    std::cout << "\nEnter the order ID that was paid for: ";
+    int orderId;
+    getInput(orderId);
+    auto rc{ databaseInterface.updateOrderStatus(certification, orderId, Order::Status::Paid) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nOrder paid for successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "\nAn invalid ID was input.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else
+    {
+        error();
+        return;
+    }
+}
+
+void Application::updateOrderAsDelivered()
+{
+    system("CLS");
+
+    std::vector<Order> orders{};
+    if (databaseInterface.getOrders(orders) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].status != Order::Status::Made)
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "There are no orders ready to be delivered.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Orders:\n";
+    for (const auto& order : orders)
+        std::cout << "\nOrder ID: " << order.id << "\nParty ID: " << order.partyId << '\n';
+
+    std::cout << "\nEnter the order ID that was delivered: ";
+    int orderId;
+    getInput(orderId);
+    auto rc{ databaseInterface.updateOrderStatus(certification, orderId, Order::Status::Delivered) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nOrder delivered successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "\nAn invalid ID was input.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else
+    {
+        error();
+        return;
+    }
+}
+
+void Application::updateOrderAsMade()
+{
+    system("CLS");
+
+    std::vector<Order> orders{};
+    if (databaseInterface.getOrders(orders) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].status != Order::Status::Placed)
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "There are no orders ready to be made.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Orders:\n";
+    for (const auto& order : orders)
+        std::cout << "\nOrder ID: " << order.id << "\nParty ID: " << order.partyId << '\n';
+
+    std::cout << "\nEnter the order ID that is made: ";
+    int orderId;
+    getInput(orderId);
+    auto rc{ databaseInterface.updateOrderStatus(certification, orderId, Order::Status::Made) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nOrder updated as made successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "\nAn invalid ID was input.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else
+    {
+        error();
+        return;
+    }
+}
+
+void Application::updateOrderAsPlaced()
+{
+    system("CLS");
+
+    std::vector<Order> orders{};
+    if (databaseInterface.getOrders(orders) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].status != Order::Status::Placing || orders[i].items.empty())
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "There are no orders available to be placed.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Orders:\n";
+    for (const auto& order : orders)
+        std::cout << "\nOrder ID: " << order.id << "\nParty ID: " << order.partyId << '\n';
+
+    std::cout << "\nEnter the order ID to be placed: ";
+    int orderId;
+    getInput(orderId);
+    auto rc{ databaseInterface.updateOrderStatus(certification, orderId, Order::Status::Placed) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nOrder placed successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "\nAn invalid ID was input.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else
+    {
+        error();
+        return;
+    }
+}
+
 void Application::finishParty()
 {
     system("CLS");
@@ -195,7 +423,7 @@ void Application::finishParty()
 
     std::cout << "Parties:\n";
     for (const auto& party : parties)
-        std::cout << "\nID: " << party.id << "\nSize: " << party.size << "\nStatus: " << static_cast<int>(party.status) << '\n';
+        std::cout << "\nID: " << party.id << "\nSize: " << party.size << '\n';
 
     std::cout << "\nEnter the party to update as finished: ";
     int partyId;
@@ -345,6 +573,7 @@ void Application::addOrder()
     {
         std::cout << "There are no seated parties.\n";
         pressToContinue();
+        return;
     }
 
     std::cout << "Parties: \n";
@@ -523,11 +752,19 @@ void Application::updateTable()
             {
                 std::cout << "\nTable updated successfully.\n";
                 pressToContinue();
+                return;
             }
             else if (rc == ReturnCode::NonexistentId)
+            {
                 std::cout << "\nA table with ID " << id << " does not exist!\n";
+                pressToContinue();
+                return;
+            }
             else if (rc == ReturnCode::Error)
+            {
                 error();
+                return;
+            }
 
             break;
 
@@ -544,6 +781,7 @@ void Application::updateTable()
             if (tables.empty())
             {
                 std::cout << "There are no tables you can update." << std::endl;
+                pressToContinue();
                 break;
             }
 
@@ -558,13 +796,19 @@ void Application::updateTable()
             {
                 std::cout << "\nTable updated successfully.\n";
                 pressToContinue();
+                return;
             }
             else if (rc == ReturnCode::NonexistentId)
+            {
                 std::cout << "\nA table with ID " << id << " does not exist!\n";
+                pressToContinue();
+                return;
+            }
             else if (rc == ReturnCode::Error)
+            {
                 error();
-
-            break;
+                return;
+            }
 
         case Employee::Type::Waiter:
             for (int i{}; i < tables.size(); i++)
@@ -579,6 +823,7 @@ void Application::updateTable()
             if (tables.empty())
             {
                 std::cout << "There are no tables you can update." << std::endl;
+                pressToContinue();
                 break;
             }
 
@@ -593,13 +838,19 @@ void Application::updateTable()
             {
                 std::cout << "\nTable updated successfully.\n";
                 pressToContinue();
+                return;
             }
             else if (rc == ReturnCode::NonexistentId)
+            {
                 std::cout << "\nA table with ID " << id << " does not exist!\n";
+                pressToContinue();
+                return;
+            }
             else if (rc == ReturnCode::Error)
+            {
                 error();
-
-            break;
+                return;
+            }
 
         case Employee::Type::Busser:
             for (int i{}; i < tables.size(); i++)
@@ -614,6 +865,7 @@ void Application::updateTable()
             if (tables.empty())
             {
                 std::cout << "There are no tables you can update." << std::endl;
+                pressToContinue();
                 break;
             }
 
@@ -628,13 +880,19 @@ void Application::updateTable()
             {
                 std::cout << "\nTable updated successfully.\n";
                 pressToContinue();
+                return;
             }
             else if (rc == ReturnCode::NonexistentId)
+            {
                 std::cout << "\nA table with ID " << id << " does not exist!\n";
+                pressToContinue();
+                return;
+            }
             else if (rc == ReturnCode::Error)
+            {
                 error();
-
-            break;
+                return;
+            }
         }
     }
 }
