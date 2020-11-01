@@ -127,5 +127,5 @@ struct Order
     int partyId{};
     Status status{};
     double total{};
-    std::vector<OrderItem> items;
+    std::vector<OrderItem> items{};
 };

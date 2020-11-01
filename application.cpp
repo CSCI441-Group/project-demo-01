@@ -84,6 +84,8 @@ std::string Application::getEmployeeTypeString(Employee::Type type)
     {
     case Employee::Type::Manager:
         return "Manager";
+    case Employee::Type::Host:
+        return "Host";
     case Employee::Type::Waiter:
         return "Waiter";
     case Employee::Type::Cook:
@@ -163,6 +165,315 @@ void Application::printTables()
     }
 
     pressToContinue();
+}
+
+void Application::finishParty()
+{
+    system("CLS");
+
+    std::vector<Party> parties{};
+    if (databaseInterface.getParties(parties) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+
+    for (int i{}; i < parties.size(); i++)
+    {
+        if (parties[i].status == Party::Status::Finished)
+        {
+            parties.erase(parties.begin() + i);
+            --i;
+        }
+    }
+    if (parties.empty())
+    {
+        std::cout << "There are no unfinished parties.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Parties:\n";
+    for (const auto& party : parties)
+        std::cout << "\nID: " << party.id << "\nSize: " << party.size << "\nStatus: " << static_cast<int>(party.status) << '\n';
+
+    std::cout << "\nEnter the party to update as finished: ";
+    int partyId;
+    getInput(partyId);
+    auto rc{ databaseInterface.finishParty(certification, partyId) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nParty updated as finished successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "\nAn invalid ID was input.\n";
+        pressToContinue();
+        return;
+    }
+    else
+    {
+        error();
+        return;
+    }
+}
+
+void Application::addOrderItems()
+{
+    system("CLS");
+
+    std::vector<Order> orders{};
+    if (databaseInterface.getOrders(orders) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].status != Order::Status::Placing)
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "There are no orders still being placed.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Orders:\n";
+    for (const auto& order : orders)
+        std::cout << "\nOrder ID: " << order.id << "\nParty ID: " << order.partyId << '\n';
+
+    std::cout << "\nEnter the ID of the order to add items to: ";
+    int orderId;
+    if (getInput(orderId) != ReturnCode::Success)
+    {
+        invalidInput();
+        return;
+    }
+    for (int i{}; i < orders.size(); i++)
+    {
+        if (orders[i].id != orderId)
+        {
+            orders.erase(orders.begin() + i);
+            --i;
+        }
+    }
+    if (orders.empty())
+    {
+        std::cout << "You input an invalid ID.\n";
+        pressToContinue();
+        return;
+    }
+    
+    char again{ 'N' };
+    do
+    {
+        Menu menu;
+        auto rc{ databaseInterface.getMenu(menu) };
+
+        for (const auto& submenu : menu.submenus)
+        {
+            std::cout << "\n" << submenu.name << " Menu" << '\n';
+            for (const auto& item : submenu.items)
+                std::cout << "\nItem ID: " << item.id << "\nName: " << item.name << "\nPrice: " << item.price << '\n';
+        }
+        std::cout << "\nEnter the ID of the item: ";
+        int itemId;
+        getInput(itemId);
+        rc = databaseInterface.addOrderItem(certification, orderId, itemId);
+        if (rc == ReturnCode::Success)
+        {   
+            std::vector<OrderItem> orderItems{};
+            databaseInterface.getOrderItems(orderId, orderItems);
+            std::cout << "\nUpdated order:\n";
+            for (const auto& orderItem : orderItems)
+                std::cout << orderItem.name << "  $" << orderItem.price << '\n';
+            std::cout << "\nAdd another item? (Y/N): ";
+            getInput(again);
+        }
+        else if (rc == ReturnCode::NonexistentId)
+        {
+            std::cout << "An invalid ID was input.\n";
+            pressToContinue();
+            return;
+        }
+        else
+        {
+            error();
+            return;
+        }
+    } while (again == 'y' || again == 'Y');
+}
+
+void Application::addOrder()
+{
+    system("CLS");
+
+    Employee::Type type;
+    if (databaseInterface.getEmployeeType(certification, type) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+
+    std::vector<Party> parties{};
+    if (databaseInterface.getParties(parties) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+    for (int i{}; i < parties.size(); i++)
+    {
+        if (parties[i].status != Party::Status::Seated)
+        {
+            parties.erase(parties.begin() + i);
+            --i;
+        }
+    }
+    if (parties.empty())
+    {
+        std::cout << "There are no seated parties.\n";
+        pressToContinue();
+    }
+
+    std::cout << "Parties: \n";
+    for (const auto& party : parties)
+        std::cout << "\nID: " << party.id << '\n';
+
+    std::cout << "\nEnter the ID of the party ready to order: ";
+    int partyId;
+    getInput(partyId);
+
+    auto rc{ databaseInterface.addOrder(certification, partyId) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "\nOrder added successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "You input an invalid ID.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else if (rc == ReturnCode::Error)
+    {
+        error();
+        return;
+    }
+}
+
+void Application::seatParty()
+{
+    system("CLS");
+
+    Employee::Type type;
+    if (databaseInterface.getEmployeeType(certification, type) != ReturnCode::Success)
+    {
+        error();
+        return;
+    }
+
+    std::vector<Party> parties{};
+    databaseInterface.getParties(parties);
+
+    for (int i{}; i < parties.size(); i++)
+    {
+        if (parties[i].status != Party::Status::InWaitQueue)
+        {
+            parties.erase(parties.begin() + i);
+            --i;
+        }
+    }
+    if (parties.empty())
+    {
+        std::cout << "There are no parties waiting to be seated.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::vector<Table> tables{};
+    databaseInterface.getTables(tables);
+
+    for (int i{}; i < tables.size(); i++)
+    {
+        if (tables[i].status != Table::Status::Ready)
+        {
+            tables.erase(tables.begin() + i);
+            --i;
+        }
+    }
+    if (tables.empty())
+    {
+        std::cout << "There are no tables ready for a party.\n";
+        pressToContinue();
+        return;
+    }
+
+    std::cout << "Parties:\n";
+    for (const auto& party : parties)
+        std::cout << "\nID: " << party.id << "\nSize: " << party.size << '\n';
+
+    std::cout << "\nEnter the ID of the party to seat: ";
+    int partyId;
+    if (getInput(partyId) != ReturnCode::Success)
+    {
+        invalidInput();
+        return;
+    }
+
+    std::cout << "\nTables:\n";
+    for (const auto& table : tables)
+        std::cout << "\nID: " << table.id << '\n';
+
+    std::cout << "\nEnter the ID of the table to seat the party at: ";
+    int tableId;
+    if (getInput(tableId) != ReturnCode::Success)
+    {
+        invalidInput();
+        return;
+    }
+
+    ReturnCode rc{ databaseInterface.seatParty(certification, partyId, tableId) };
+    if (rc == ReturnCode::Success)
+    {
+        std::cout << "Party seated successfully.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::NonexistentId)
+    {
+        std::cout << "You input an invalid ID.\n";
+        pressToContinue();
+        return;
+    }
+    else if (rc == ReturnCode::Uncertified)
+    {
+        uncertified();
+        return;
+    }
+    else if (rc == ReturnCode::Error)
+    {
+        error();
+        return;
+    }
 }
 
 void Application::updateTable()

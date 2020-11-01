@@ -36,36 +36,20 @@ private:
     // Base menu functions
     void login();
     void exit();
-
-    // Universal functions
     void logout();
-
-    // Manager menu functions
     void addEmployee();
     void addTable();
     void printMenu();
     void printTables();
     void updateTable();
-
     void addExampleMenu();
     void addExampleEmployees();
-
-    // Host menu functions
     void addParty();
-
-    ///////////////////////////////////// TO-DO /////////////////////////////////////
-    // PRINT PARTY IDS NOT YET SEATED, GET INPUT PARTY ID, USE DATABASE FUNCTION seatParty
     void seatParty();
-    // PRINT PARTY IDS, GET INPUT PARTY ID, USE DATABASE FUNCTION addOrder
     void addOrder();
-    // PRINT ORDER IDS, GET INPUT ORDER ID, PRINT ITEM IDS NAMES AND PRICES, GET INPUT ITEM ID, USE DATABASEINTERFACE FUNCTION addOrderItem
-    void addOrderItem();
-    // DEPENDING ON CERTIFICATIONS PRINT POSSIBLE PARTY IDS AND STATUSES TO UPDATE, GET INPUT PARTY ID, USE DATABASE FUNCTION updatePartyStatus
-    void updatePartyStatus();
+    void addOrderItems();
     // DEPENDING ON CERTIFICATIONS PRINT POSSIBLE ORDER IDS AND STATUSES TO UPDATE, GET INPUT ORDER ID, USE DATABASE FUNCTION updateOrderStatus
     void updateOrderStatus();
-    // PRINT PARTY IDS, GET INPUT PARTY ID, USE DATABASE FUNCTION finishParty
-    // This database function cancels all active orders for parties, accounting for the possibility of unpaid orders and additionally allows parties to leave before being seated, etc
     void finishParty();
     
 
@@ -86,16 +70,26 @@ private:
         std::make_pair<std::string, void(Application::*)()>("Print menu", &Application::printMenu),
         std::make_pair<std::string, void(Application::*)()>("Print tables", &Application::printTables),
         std::make_pair<std::string, void(Application::*)()>("Update table", &Application::updateTable),
+        std::make_pair<std::string, void(Application::*)()>("Add party", &Application::addParty),
+        std::make_pair<std::string, void(Application::*)()>("Finish party", &Application::finishParty),
+        std::make_pair<std::string, void(Application::*)()>("Seat party", &Application::seatParty),
+        std::make_pair<std::string, void(Application::*)()>("Add order", &Application::addOrder),
+        std::make_pair<std::string, void(Application::*)()>("Add items to order", &Application::addOrderItems),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 
     std::vector<std::pair<std::string, void(Application::*)()>> hostMenu{
-        std::make_pair<std::string, void(Application::*)()>("Update table as seated", &Application::updateTable),
+        std::make_pair<std::string, void(Application::*)()>("Add party", &Application::addParty),
+        std::make_pair<std::string, void(Application::*)()>("Seat party", &Application::seatParty),
+        std::make_pair<std::string, void(Application::*)()>("Finish party", &Application::finishParty),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 
     std::vector<std::pair<std::string, void(Application::*)()>> waiterMenu{
         std::make_pair<std::string, void(Application::*)()>("Update table as dirty", &Application::updateTable),
+        std::make_pair<std::string, void(Application::*)()>("Add order", &Application::addOrder),
+        std::make_pair<std::string, void(Application::*)()>("Add items to order", &Application::addOrderItems),
+        std::make_pair<std::string, void(Application::*)()>("Finish party", &Application::finishParty),
         std::make_pair<std::string, void(Application::*)()>("Logout", &Application::logout)
     };
 

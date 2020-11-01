@@ -141,7 +141,7 @@ ReturnCode DatabaseInterface::addParty(const Certification& certification, const
 	if (type == Employee::Type::Host || type == Employee::Type::Manager)
 	{
 		sql = std::string{ "INSERT INTO party(table_id, size, status) \
-			VALUES(" } + std::to_string(0) + "," + std::to_string(size), +"," + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ");";
+			VALUES(" } + std::to_string(0) + "," + std::to_string(size) +"," + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ");";
 		
 		return insertSql();
 	}
@@ -263,6 +263,8 @@ ReturnCode DatabaseInterface::finishParty(const Certification& certification, co
 	std::vector<std::vector<std::string>> results{};
 	if (querySql(results) != ReturnCode::Success)
 		return ReturnCode::Error;
+	else if (results.empty())
+		return ReturnCode::NonexistentId;
 
 	if (type == Employee::Type::Manager ||
 		type == Employee::Type::Host ||
@@ -478,7 +480,7 @@ ReturnCode DatabaseInterface::getOrderItems(const int orderId, std::vector<Order
 	{
 		sql = std::string{ "SELECT * FROM item WHERE id=" + orderItem[INDEX_ORDER_ITEM_ITEM_ID] + ";" };
 		std::vector<std::vector<std::string>> itemResults{};
-		if (querySql(orderItemResults) != ReturnCode::Success || orderItemResults.empty())
+		if (querySql(itemResults) != ReturnCode::Success || itemResults.empty())
 			return ReturnCode::Error;
 
 		orderItems.push_back(OrderItem{ std::stoi(orderItem[INDEX_ORDER_ITEM_ID]), std::stoi(orderItem[INDEX_ORDER_ITEM_ITEM_ID]), itemResults[0][INDEX_ITEM_NAME], std::stod(itemResults[0][INDEX_ITEM_PRICE]) });
