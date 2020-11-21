@@ -7,48 +7,151 @@ DatabaseInterface::DatabaseInterface()
 	if (rc != SQLITE_OK)
 		throw sqlite3_errmsg(database);
 
-	if (createTables() != ReturnCode::Success)
+	if (!createTables())
 		throw std::exception{};
 }
 
 DatabaseInterface::~DatabaseInterface()
 {
-	sqlite3_close(database);
+
+}
+
+bool DatabaseInterface::createTables()
+{
+	try
+	{
+		rc = sqlite3_exec(database, "CREATE TABLE IF NOT EXISTS menu( \
+			  id INTEGER PRIMARY KEY, \
+			  parent_id INTEGER, \
+			  name TEXT, \
+			  FOREIGN KEY(parent_id) REFERENCES menu(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS item( \
+			  id INTEGER PRIMARY KEY, \
+			  menu_id INTEGER,  \
+			  name TEXT, \
+			  price REAL, \
+			  FOREIGN KEY(menu_id) REFERENCES menu(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS adjustment_group( \
+			  id INTEGER PRIMARY KEY, \
+			  item_id INTEGER, \
+			  name TEXT, \
+			  FOREIGN KEY(item_id) REFERENCES item(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS adjustment( \
+			  id INTEGER PRIMARY KEY, \
+			  adjustment_group_id INTEGER, \
+			  name TEXT, \
+			  price REAL, \
+			  FOREIGN KEY(adjustment_group_id) REFERENCES adjustment_group(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS employee( \
+			  id INTEGER PRIMARY KEY, \
+			  first_name TEXT, \
+			  last_name TEXT, \
+			  password TEXT, \
+			  type INTEGER, \
+			  pay_rate REAL \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS shift( \
+			  employee_id INTEGER, \
+			  in_time TEXT, \
+			  out_time TEXT, \
+			  PRIMARY KEY(employee_id,in_time), \
+			  FOREIGN KEY(employee_id) REFERENCES employee(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS table_( \
+			  id INTEGER PRIMARY KEY, \
+			  waiter_id INTEGER, \
+			  status INTEGER, \
+			  FOREIGN KEY(waiter_id) REFERENCES employee(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS party( \
+			  id INTEGER PRIMARY KEY, \
+			  table_id INTEGER, \
+			  size INTEGER, \
+			  status INTEGER, \
+			  wait_queue_time TEXT, \
+			  seated_time TEXT, \
+			  finished_time TEXT, \
+			  FOREIGN KEY(table_id) REFERENCES table_(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS order_( \
+			  id INTEGER PRIMARY KEY, \
+			  party_id INTEGER, \
+			  status INTEGER, \
+			  total REAL, \
+			  place_time TEXT, \
+			  deliver_time TEXT, \
+			  tip REAL, \
+			  FOREIGN KEY(party_id) REFERENCES party(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS order_item( \
+			  id INTEGER PRIMARY KEY, \
+			  order_id INTEGER, \
+			  item_id INTEGER, \
+			  FOREIGN KEY(order_id) REFERENCES order_(id), \
+			  FOREIGN KEY(item_id) REFERENCES item(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS order_item_adjustment( \
+			  order_item_id INTEGER, \
+			  adjustment_id INTEGER, \
+			  PRIMARY KEY(order_item_id,adjustment_id), \
+			  FOREIGN KEY(order_item_id) REFERENCES order_item(id), \
+			  FOREIGN KEY(adjustment_id) REFERENCES adjustment(id) \
+			); \
+			 \
+			CREATE TABLE IF NOT EXISTS payment( \
+			  order_id INTEGER, \
+			  amount REAL, \
+			  type INTEGER, \
+			  card_number TEXT \
+			); \
+			 \
+			INSERT OR IGNORE INTO employee(id, first_name, last_name, password, type) \
+			VALUES(0, 'Admin', 'User', 'password', 0); \
+			 \
+			INSERT OR IGNORE INTO menu(id, parent_id, name) \
+			VALUES(0, 0, 'Menu');", nullptr, nullptr, &errorMessage);
+
+		if (rc != SQLITE_OK)
+			throw errorMessage;
+
+		return true;
+	}
+	catch (...)
+	{
+		return false;
+	}
 }
 
 int DatabaseInterface::callback(void* data, int argc, char** argv, char** azColName)
 {
 	// Reinterpret the user data as a vector that was passed in
-	std::vector<std::vector<std::string>>* results = reinterpret_cast<std::vector<std::vector<std::string>>*>(data);
+	std::vector<std::vector<std::string>> results = *reinterpret_cast<std::vector<std::vector<std::string>>*>(data);
 	// Add a new row of values to the vector unless the vector provided has a row ready to be used
-	results->push_back(std::vector<std::string>{});
+	results.push_back(std::vector<std::string>{});
 	// Fill the row with values
 	for (int i{}; i < argc; i++)
 	{
-		results->back().push_back(argv[i]);
+		results.back().push_back(argv[i]);
 	}
 
 	return 0;
 }
 
-ReturnCode DatabaseInterface::createTables()
-{
-	try
-	{
-		rc = sqlite3_exec(database, "CREATE TABLE IF NOT EXISTS menu(  id INTEGER PRIMARY KEY,  parent_id INTEGER,  name TEXT,  FOREIGN KEY(parent_id) REFERENCES menu(id));CREATE TABLE IF NOT EXISTS item(  id INTEGER PRIMARY KEY,  menu_id INTEGER,   name TEXT,  price REAL,  FOREIGN KEY(menu_id) REFERENCES menu(id));CREATE TABLE IF NOT EXISTS adjustment_group(  id INTEGER PRIMARY KEY,  item_id INTEGER,  name TEXT,  FOREIGN KEY(item_id) REFERENCES item(id));CREATE TABLE IF NOT EXISTS adjustment(  id INTEGER PRIMARY KEY,  adjustment_group_id INTEGER,  name TEXT,  price REAL,  FOREIGN KEY(adjustment_group_id) REFERENCES adjustment_group(id));CREATE TABLE IF NOT EXISTS employee(  id INTEGER PRIMARY KEY,  first_name TEXT,  last_name TEXT,  password TEXT,  type INTEGER);CREATE TABLE IF NOT EXISTS table_(  id INTEGER PRIMARY KEY,  waiter_id INTEGER,  status INTEGER,  FOREIGN KEY(waiter_id) REFERENCES employee(id));CREATE TABLE IF NOT EXISTS party(  id INTEGER PRIMARY KEY,  table_id INTEGER,  size INTEGER,  status INTEGER,  FOREIGN KEY(table_id) REFERENCES table_(id));CREATE TABLE IF NOT EXISTS order_(  id INTEGER PRIMARY KEY,  party_id INTEGER,  status INTEGER,  total REAL,  FOREIGN KEY(party_id) REFERENCES party(id));CREATE TABLE IF NOT EXISTS order_item(  id INTEGER PRIMARY KEY,  order_id INTEGER,  item_id INTEGER,  FOREIGN KEY(order_id) REFERENCES order_(id),  FOREIGN KEY(item_id) REFERENCES item(id));CREATE TABLE IF NOT EXISTS order_item_adjustment(  order_item_id INTEGER,  adjustment_id INTEGER,  PRIMARY KEY(order_item_id,adjustment_id),  FOREIGN KEY(order_item_id) REFERENCES order_item(id),  FOREIGN KEY(adjustment_id) REFERENCES adjustment(id));INSERT OR IGNORE INTO employee(id, first_name, last_name, password, type)VALUES(0, 'Admin', 'User', 'password', 0);INSERT OR IGNORE INTO menu(id, parent_id, name)VALUES(0, 0, 'Menu');", nullptr, nullptr, &errorMessage);
-
-		if (rc != SQLITE_OK)
-			throw errorMessage;
-
-		return ReturnCode::Success;
-	}
-	catch (...)
-	{
-		return ReturnCode::Error;
-	}
-}
-
-ReturnCode DatabaseInterface::insertSql()
+bool DatabaseInterface::querySql(const std::string& sql)
 {
 	try
 	{
@@ -57,15 +160,15 @@ ReturnCode DatabaseInterface::insertSql()
 		if (rc != SQLITE_OK)
 			throw errorMessage;
 
-		return ReturnCode::Success;
+		return true;
 	}
 	catch (...)
 	{
-		return ReturnCode::Error;
+		return false;
 	}
 }
 
-ReturnCode DatabaseInterface::querySql(std::vector<std::vector<std::string>>& results)
+bool DatabaseInterface::querySql(const std::string& sql, std::vector<std::vector<std::string>>& results)
 {
 	try
 	{
@@ -74,503 +177,461 @@ ReturnCode DatabaseInterface::querySql(std::vector<std::vector<std::string>>& re
 		if (rc != SQLITE_OK)
 			throw errorMessage;
 
-		return ReturnCode::Success;
+		return true;
 	}
 	catch (...)
 	{
-		return ReturnCode::Error;
+		return false;
 	}
 }
 
-ReturnCode DatabaseInterface::getEmployeeType(const Certification& certification, Employee::Type& type)
+// Description:				Assigns type with the type of the employee whose certifications were passed in
+// Returns:					True if the certification exists in the database, false otherwise
+bool DatabaseInterface::getEmployeeType(const Certification& certification, Employee::Type& type)
 {
-	sql = std::string{ "SELECT type FROM employee WHERE id=" + std::to_string(certification.id) + " AND password='" + certification.password + "';" };
+	std::string sql{ "SELECT type FROM employee WHERE id=" + std::to_string(certification.id) + " AND password='" + certification.password + "';" };
 	std::vector<std::vector<std::string>> results{};
-	querySql(results);
+	
+	if (!querySql(sql, results) || results.empty())
+		return false;
 
-	if (!results.empty())
-	{
-		type = static_cast<Employee::Type>(std::stoi(results[0][0]));
-		return ReturnCode::Success;
-	}
-	else
-		return ReturnCode::Error;
+	type = static_cast<Employee::Type>(std::stoi(results[0][0]));
+	return true;
 }
 
-ReturnCode DatabaseInterface::addEmployee(const Certification& certification, const Employee& employee)
+
+// Description:             Clocks in for a new shift
+// Returns:                 True if the clock in occurred successfully, false otherwise
+bool DatabaseInterface::clockIn(const Certification& certification)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Only add a new employee if the user attempting to add a new employee is a manager
-	if (type == Employee::Type::Manager)
-	{
-		sql = std::string{ "INSERT INTO employee(first_name, last_name, password, type) \
-			VALUES('" + employee.firstName + "','" + employee.lastName + "','" + employee.certification.password + "'," + std::to_string(static_cast<int>(employee.type)) + ");" };
-		
-		return insertSql();
-	}
-	else
-		return ReturnCode::Uncertified;
+	std::string sql{ "INSERT INTO shift(employee_id,in_time) \
+		VALUES(" + std::to_string(certification.id) + ",datetime('now'));" };
+	return querySql(sql);
 }
 
-ReturnCode DatabaseInterface::addOrder(const Certification& certification, const int partyId)
+// Description:             Clocks out the current shift
+// Returns:                 True if the clock out occurred successfully, false otherwise
+bool DatabaseInterface::clockOut(const Certification& certification)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	if (type == Employee::Type::Waiter || type == Employee::Type::Manager)
-	{
-		sql = std::string{ "INSERT INTO order_(party_id,status,total) \
-			VALUES(" + std::to_string(partyId) + "," + std::to_string(static_cast<int>(Order::Status::Placing)) + "," + std::to_string(0) + ");" };
-		
-		return insertSql();
-	}
-	else
-		return ReturnCode::Uncertified;
+	std::string sql{ "UPDATE shift \
+		SET out_time = DATETIME('now') \
+		WHERE employee_id =" + std::to_string(certification.id) + " AND out_time IS NULL;" };
+	return querySql(sql);
 }
 
-ReturnCode DatabaseInterface::addParty(const Certification& certification, const int size)
+// Description:             Updates the password of the user that matches the provided certification to newPassword
+// Returns:                 True if the update occurred successfully, false otherwise
+bool DatabaseInterface::updatePassword(const Certification& certification, const std::string& newPassword)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	std::string sql{ "UPDATE employee	\
+		SET password=" + newPassword + " " +
+		"WHERE id=" + std::to_string(certification.id) + ";" };
+	return querySql(sql);
+}
+
+// Certification required:	Manager, Host
+// Description:				Adds a new party to the database with status = InWaitQueue
+// Returns:					True if the party was added succefully, false otherwise
+bool DatabaseInterface::addParty(const Certification& certification, const int size)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
 
 	if (type == Employee::Type::Host || type == Employee::Type::Manager)
 	{
-		sql = std::string{ "INSERT INTO party(table_id, size, status) \
-			VALUES(" } + std::to_string(0) + "," + std::to_string(size) +"," + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ");";
-		
-		return insertSql();
+		std::string sql{ "INSERT INTO party(size,status,wait_queue_time) \
+			VALUES(" + std::to_string(size) + "," + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ",DATETIME('now'));" };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::addMenu(const Certification& certification, const int parentId, const std::string& name)
+// Certification required:	Manager, Host (If party is in wait queue)
+// Description:				Updates the party and the table as seated
+// Returns:					True if the party and table were updated successfully, false otherwise
+bool DatabaseInterface::updatePartyAsSeated(const Certification& certification, const int partyId, const int tableId)
 {
 	Employee::Type type;
-	if(getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Only add a new menu if the user is a manager
-	if (type == Employee::Type::Manager)
+	if (type == Employee::Type::Host)
 	{
-		sql = std::string{ "SELECT * FROM menu WHERE parent_id=" + std::to_string(parentId) + " AND name='" + name + "';" };
-		std::vector<std::vector<std::string>> results;
-		if (querySql(results) != ReturnCode::Success)
-			return ReturnCode::Error;
+		std::string sql{ "SELECT * FROM party WHERE id=" + std::to_string(partyId) + " AND status=" + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ";" };
+		std::vector<std::vector<std::string>> results{};
+		if (!querySql(sql, results) || results.empty())
+			return false;
+	}
 
-		if (results.empty())
-		{
-			sql = std::string{ "INSERT INTO menu(parent_id, name) \
-			VALUES(" + std::to_string(parentId) + ",'" + name + "');" };
-
-			return insertSql();
-		}
-		else
-			return ReturnCode::Duplicate;
+	if (type == Employee::Type::Manager || type == Employee::Type::Host)
+	{
+		std::string sql{ "UPDATE party \
+			SET status=" + std::to_string(static_cast<int>(Party::Status::Seated)) + ",table_id=" + std::to_string(tableId) + " " +
+			"WHERE id=" + std::to_string(partyId) + "; \
+			UPDATE table_ \
+			SET status=" + std::to_string(static_cast<int>(Table::Status::Seated)) + " " +
+			"WHERE id=" + std::to_string(tableId) + ";" };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::addOrderItem(const Certification& certification, const int orderId, const int itemId)
+// Certification required:	Manager, Waiter
+// Description:				Adds a new order and associates it with a party
+// Returns:					True if the order was added succefully, false otherwise
+bool DatabaseInterface::addOrder(const Certification& certification, const int partyId)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Only add a new employee if the user is a waiter or manager
-	if (type == Employee::Type::Waiter || type == Employee::Type::Manager)
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		sql = std::string{ "SELECT * FROM order_ WHERE id=" + std::to_string(orderId) + ";" };
+		std::string sql{ "INSERT INTO order_(party_id,status,total) \
+			VALUES(" + std::to_string(partyId) + "," + std::to_string(static_cast<int>(Order::Status::Placing)) + ",0.00);" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager, Waiter
+// Description:				Adds a new item to an order and updates the order's total
+// Returns:					True if the order item was added succefully, false otherwise
+bool DatabaseInterface::addOrderItem(const Certification& certification, const int orderId, const int itemId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
+	{
+		std::string sql{ "SELECT * FROM item WHERE id=" + std::to_string(itemId) + ";" };
 		std::vector<std::vector<std::string>> results;
-		if (querySql(results) != ReturnCode::Success)
-			return ReturnCode::Error;
-		if (results.empty() || static_cast<Order::Status>(std::stoi(results[0][INDEX_ORDER_STATUS])) != Order::Status::Placing)
-			return ReturnCode::NonexistentId;
-		
-		sql = std::string{ "SELECT * FROM item WHERE id=" + std::to_string(itemId) + ";" };
-		results.clear();
-		if (querySql(results) != ReturnCode::Success)
-			return ReturnCode::Error;
-		if (results.empty())
-			return ReturnCode::NonexistentId;
+		if (!querySql(sql, results) || results.empty())
+			return false;
 
 		sql = std::string{ "INSERT INTO order_item(order_id,item_id) \
-			VALUES(" + std::to_string(orderId) + "," + std::to_string(itemId) + ");" };
-		return insertSql();
+			VALUES(" + std::to_string(orderId) + "," + std::to_string(itemId) + "); \
+			UPDATE order_ \
+			SET total=total+" + results[0][INDEX_ITEM_PRICE] + " \
+			WHERE id=" + std::to_string(orderId) + ";" };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::addItem(const Certification& certification, const int menuId, const std::string& name, const double price)
+// Certification required:	Manager, Waiter
+// Description:				Adds a new adjustment to an order item to the database with orderItemId as the ID of the order item and adjustmentId as the ID of the adjustment to associate the order adjustment with
+// Returns:					True if the order item was added succefully, false otherwise
+bool DatabaseInterface::addOrderAdjustment(const Certification& certification, const int orderItemId, const int adjustmentId)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Only add a new employee if the user is a manager
-	if (type == Employee::Type::Manager)
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		sql = std::string{ "SELECT * FROM item WHERE menu_id=" + std::to_string(menuId) + " AND name='" + name + "';" };
+		std::string sql{ "SELECT * FROM adjustment WHERE id=" + std::to_string(adjustmentId) + ";" };
 		std::vector<std::vector<std::string>> results;
-		if (querySql(results) != ReturnCode::Success)
-			return ReturnCode::Error;
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		std::string adjustmentPrice{ results[0][INDEX_ADJUSTMENT_PRICE] };
 
-		if (results.empty())
-		{
-			sql = std::string{ "INSERT INTO item(menu_id, name, price) \
-			VALUES(" + std::to_string(menuId) + ",'" + name + "'," + std::to_string(price) + ");" };
+		sql = std::string{ "SELECT * FROM order_item WHERE id=" + std::to_string(orderItemId) + ";" };
+		results.clear();
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		std::string orderId{ results[0][INDEX_ORDER_ITEM_ORDER_ID] };
 
-			return insertSql();
-		}
-		else
-			return ReturnCode::Duplicate;
+		sql = std::string{ "INSERT INTO order_item_adjustment(order_item_id,adjustment_id) \
+			VALUES(" + std::to_string(orderItemId) + "," + std::to_string(adjustmentId) + "); \
+			UPDATE order_ \
+			SET total=total+" + adjustmentPrice + " \
+			WHERE id=" + orderId + ";" };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::addTable(const Certification& certification)
+// Certification required:	Manager, Waiter
+// Description:				Adds a new payment and associates it with an order
+// Returns:					True if the payment was added succefully, false otherwise
+bool DatabaseInterface::addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type paymentType, const std::string& cardNumber)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Only add a new table if the user is a manager
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
+	{
+		std::string sql{ "INSERT INTO payment(order_id,amount,type,card_number) \
+			VALUES(" + std::to_string(orderId) + "," + std::to_string(amount) + "," + std::to_string(static_cast<int>(paymentType)) + cardNumber + ");" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+bool DatabaseInterface::removeOrder(const Certification& certification, const int orderId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
 	if (type == Employee::Type::Manager)
 	{
-		sql = std::string{ "INSERT INTO table_(status,waiter_id) \
-			VALUES(" + std::to_string(static_cast<int>(Table::Status::OutOfUse)) + "," + std::to_string(0) + ");" };
-		return insertSql();
-	}
-	return
-		ReturnCode::Uncertified;
-}
-
-ReturnCode DatabaseInterface::finishParty(const Certification& certification, const int partyId)
-{
-	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
-
-	sql = std::string{ "SELECT * FROM party WHERE id=" + std::to_string(partyId) + ";" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-	else if (results.empty())
-		return ReturnCode::NonexistentId;
-
-	if (type == Employee::Type::Manager ||
-		type == Employee::Type::Host ||
-		type == Employee::Type::Waiter)
-	{
-		sql = std::string{ "UPDATE party SET status=" + std::to_string(static_cast<int>(Party::Status::Finished)) + " WHERE id=" + std::to_string(partyId) + ";" +
-			"UPDATE table_ SET status=" + std::to_string(static_cast<int>(Table::Status::Dirty)) + " WHERE id=(SELECT table_id FROM party WHERE party.id=" + std::to_string(partyId) + ");"
-			"UPDATE order_ SET status=" + std::to_string(static_cast<int>(Order::Status::Cancelled)) + ",total=" + std::to_string(0.0) + " WHERE party_id=" + std::to_string(partyId) + " AND status!=" + std::to_string(static_cast<int>(Order::Status::Paid)) + ";" };
-		
-		return insertSql();
+		std::string sql{  };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::seatParty(const Certification& certification, const int partyId, const int tableId)
+bool DatabaseInterface::removeOrderItem(const Certification& certification, const int orderItemId)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	sql = std::string{ "SELECT * FROM party WHERE id=" + std::to_string(partyId) + ";" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-	if (results.empty())
-		return ReturnCode::NonexistentId;
-	auto currentTable{ std::stoi(results[0][INDEX_PARTY_TABLE_ID]) };
-	auto currentStatus{ static_cast<Party::Status>(std::stoi(results[0][INDEX_PARTY_STATUS])) };
-
-	sql = std::string{ "SELECT * FROM table_ WHERE id=" + std::to_string(tableId) + ";" };
-	results.clear();
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-	if (results.empty())
-		return ReturnCode::NonexistentId;
-	else if (static_cast<Table::Status>(std::stoi(results[0][INDEX_TABLE_STATUS])) != Table::Status::Ready)
-		return ReturnCode::TableInUse;
-	
-	if (type == Employee::Type::Manager ||
-		type == Employee::Type::Host && currentStatus == Party::Status::InWaitQueue)
+	if (type == Employee::Type::Manager)
 	{
-		sql = "UPDATE party SET status=" + std::to_string(static_cast<int>(Party::Status::Seated)) + " WHERE id=" + std::to_string(partyId) + ";" +
-			"UPDATE table_ SET status=" + std::to_string(static_cast<int>(Table::Status::Seated)) + " WHERE id=" + std::to_string(tableId) + ";";
-		if (currentStatus != Party::Status::InWaitQueue)
-			sql.append(" UPDATE table_ SET status=" + std::to_string(static_cast<int>(Table::Status::Dirty)) + " WHERE id=" + std::to_string(currentTable));
-
-		return insertSql();
+		std::string sql{  };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::updateOrderStatus(const Certification& certification, const int orderId, const Order::Status newStatus)
+bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certification, const int orderItemAdjustmentId)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	sql = std::string{ "SELECT * FROM order_ WHERE id=" + std::to_string(orderId) + ";" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-
-	// Do nothing if the table does not exist
-	if (results.empty())
-		return ReturnCode::NonexistentId;
-
-	auto currentStatus{ static_cast<Order::Status>(std::stoi(results[0][INDEX_ORDER_STATUS])) };
-
-	// Only allow the update to occur if the attempt matches with employee type permissions
-	if (type == Employee::Type::Manager ||
-		type == Employee::Type::Waiter && currentStatus == Order::Status::Placing && newStatus == Order::Status::Placed ||
-		type == Employee::Type::Waiter && newStatus == Order::Status::Cancelled ||
-		type == Employee::Type::Cook && currentStatus == Order::Status::Placed && newStatus == Order::Status::Made ||
-		type == Employee::Type::Waiter && currentStatus == Order::Status::Made && newStatus == Order::Status::Delivered ||
-		type == Employee::Type::Waiter && currentStatus == Order::Status::Delivered && newStatus == Order::Status::Paid)
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		sql = std::string{ "UPDATE order_ SET status=" + std::to_string(static_cast<int>(newStatus)) + " WHERE id=" + std::to_string(orderId) + ";" };
-		return insertSql();
+		std::string sql{ "SELECT * FROM order_item_adjustment WHERE id=" + std::to_string(orderItemAdjustmentId) + ";" };
+		std::vector<std::vector<std::string>> results;
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		std::string adjustmentId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] };
+		std::string orderItemId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ORDER_ITEM_ID] };
+
+		sql = std::string{ "SELECT * FROM order_item WHERE id=" + orderItemId + ";" };
+		results.clear();
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		std::string orderId{ results[0][INDEX_ORDER_ITEM_ITEM_ID] };
+
+		//sql{  };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::updatePartyStatus(const Certification& certification, const int partyId, const Party::Status newStatus)
+
+
+
+
+// IGNORE PAST THIS LINE // INCOMPLETE //
+/*
+bool DatabaseInterface::example(const Certification& certification)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	sql = std::string{ "SELECT * FROM party WHERE id=" + std::to_string(partyId) + ";" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-
-	// Do nothing if the table does not exist
-	if (results.empty())
-		return ReturnCode::NonexistentId;
-
-	auto currentStatus{ static_cast<Party::Status>(std::stoi(results[0][INDEX_PARTY_STATUS])) };
-
-	// Only allow the update to occur if the attempt matches with employee type permissions
-	if (type == Employee::Type::Manager ||
-		type == Employee::Type::Host && currentStatus == Party::Status::InWaitQueue && newStatus == Party::Status::Seated)
+	if (type == Employee::Type::Manager)
 	{
-		if (newStatus == Party::Status::Finished)
-			return finishParty(certification, partyId);
-
-		sql = std::string{ "UPDATE party SET status=" + std::to_string(static_cast<int>(newStatus)) + " WHERE id=" + std::to_string(partyId) + ";" };
-		return insertSql();
+		std::string sql{  };
+		return querySql(sql);
 	}
-	else if (type == Employee::Type::Waiter && currentStatus == Party::Status::Seated && newStatus == Party::Status::Finished)
-		return finishParty(certification, partyId);
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::updateTableStatus(const Certification& certification, const int tableId, const Table::Status newStatus)
+
+
+
+
+
+
+// Certification required:	Manager
+// Description:				Updates the table as seated
+// Returns:					True if the table was updated succefully, false otherwise
+bool DatabaseInterface::updateTableAsSeated(const Certification& certification, const int tableId)
 {
 	Employee::Type type;
-	if (getEmployeeType(certification, type) != ReturnCode::Success)
-		return ReturnCode::Uncertified;
-	
-	sql = std::string{ "SELECT * FROM table_ WHERE id=" + std::to_string(tableId) + ";" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
+	if (!getEmployeeType(certification, type))
+		return false;
 
-	// Do nothing if the table does not exist
-	if (results.empty())
-		return ReturnCode::NonexistentId;
-
-	auto currentStatus{ static_cast<Table::Status>(std::stoi(results[0][INDEX_TABLE_STATUS])) };
-
-	// Only allow the update to occur if the attempt matches with employee type permissions
-	if (type == Employee::Type::Manager ||
-		type == Employee::Type::Host && currentStatus == Table::Status::Ready && newStatus == Table::Status::Seated ||
-		type == Employee::Type::Waiter && currentStatus == Table::Status::Seated && newStatus == Table::Status::Dirty ||
-		type == Employee::Type::Busser && currentStatus == Table::Status::Dirty && newStatus == Table::Status::Ready)
+	if (type == Employee::Type::Manager)
 	{
-		sql = std::string{ "UPDATE table_ SET status=" + std::to_string(static_cast<int>(newStatus)) + " WHERE id=" + std::to_string(tableId) + ";" };
-		return insertSql();
+		std::string sql{ "UPDATE table_ \
+			SET status=" + std::to_string(static_cast<int>(Table::Status::Seated)) + " " +
+			"WHERE id=" + std::to_string(tableId) + ";" };
+		return querySql(sql);
 	}
 	else
-		return ReturnCode::Uncertified;
+		return false;
 }
 
-ReturnCode DatabaseInterface::getTables(std::vector<Table>& tables)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Certification required:	Manager
+// Description:				Adds a new employee to the database with information provided
+// Returns:					True if the employee was added succefully, false otherwise
+bool DatabaseInterface::addEmployee(const Certification& certification, const Employee::Type type, const std::string& firstName, const std::string& lastName, const std::string& password)
 {
-	sql = std::string{ "SELECT * FROM table_;" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	for (const auto& table : results)
-		tables.push_back(Table{ std::stoi(table[INDEX_TABLE_ID]), static_cast<Table::Status>(std::stoi(table[INDEX_TABLE_STATUS])) });
-
-	return ReturnCode::Success;
 }
 
-ReturnCode DatabaseInterface::getEmployees(std::vector<Employee>& employees)
+// Certification required:	Manager
+// Description:				Adds a new menu to the database with parentId as the ID of the parent menu
+// Returns:					True if the menu was added succefully, false otherwise
+bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId = BASE_MENU_ID)
 {
-	sql = std::string{ "SELECT * FROM employee;" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	for (const auto& employee : results)
-		employees.push_back(Employee{ Certification{ std::stoi(employee[INDEX_EMPLOYEE_ID]), employee[INDEX_EMPLOYEE_PASSWORD] }, static_cast<Employee::Type>(std::stoi(employee[INDEX_EMPLOYEE_TYPE])), employee[INDEX_EMPLOYEE_FIRST_NAME], employee[INDEX_EMPLOYEE_LAST_NAME] });
-	
-	return ReturnCode::Success;
 }
 
-ReturnCode DatabaseInterface::getParties(std::vector<Party>& parties)
+// Certification required:	Manager
+// Description:				Adds a new item to the database with menuId as the ID of the menu to associate the item with
+// Returns:					True if the item was added succefully, false otherwise
+bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const std::string& name, const double price)
 {
-	sql = std::string{ "SELECT * FROM party;" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	for (const auto& party : results)
-		parties.push_back(Party{ std::stoi(party[INDEX_PARTY_ID]), std::stoi(party[INDEX_PARTY_TABLE_ID]), std::stoi(party[INDEX_PARTY_SIZE]), static_cast<Party::Status>(std::stoi(party[INDEX_PARTY_STATUS])) });
-	
-	return ReturnCode::Success;
 }
 
-ReturnCode DatabaseInterface::getOrders(std::vector<Order>& orders)
+// Certification required:	Manager
+// Description:				Adds a new adjustment group to the database with itemId as the ID of the item to associate the adjustment group with
+// Returns:					True if the adjustment group was added succefully, false otherwise
+bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name)
 {
-	sql = std::string{ "SELECT * FROM order_;" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	for (const auto& order : results)
-	{
-		orders.push_back(Order{ std::stoi(order[INDEX_ORDER_ID]), std::stoi(order[INDEX_ORDER_PARTY_ID]), static_cast<Order::Status>(std::stoi(order[INDEX_ORDER_STATUS])), std::stod(order[INDEX_ORDER_TOTAL]) });
-
-		getOrderItems(orders[orders.size() - 1].id, orders[orders.size() - 1].items);
-	}
-
-	return ReturnCode::Success;
 }
 
-ReturnCode DatabaseInterface::getOrderItems(const int orderId, std::vector<OrderItem>& orderItems)
+// Certification required:	Manager
+// Description:				Adds a new adjustment to the database with adjustmentGroupId as the ID of the adjustmentGroup to associate the adjustment with
+// Returns:					True if the adjustment was added succefully, false otherwise
+bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price)
 {
-	sql = std::string{ "SELECT * FROM order_item WHERE order_id=" + std::to_string(orderId) + ";" };
-	std::vector<std::vector<std::string>> orderItemResults{};
-	if (querySql(orderItemResults) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	for (const auto& orderItem : orderItemResults)
-	{
-		sql = std::string{ "SELECT * FROM item WHERE id=" + orderItem[INDEX_ORDER_ITEM_ITEM_ID] + ";" };
-		std::vector<std::vector<std::string>> itemResults{};
-		if (querySql(itemResults) != ReturnCode::Success || itemResults.empty())
-			return ReturnCode::Error;
-
-		orderItems.push_back(OrderItem{ std::stoi(orderItem[INDEX_ORDER_ITEM_ID]), std::stoi(orderItem[INDEX_ORDER_ITEM_ITEM_ID]), itemResults[0][INDEX_ITEM_NAME], std::stod(itemResults[0][INDEX_ITEM_PRICE]) });
-	}
-
-	return ReturnCode::Success;
 }
 
-ReturnCode DatabaseInterface::getMenu(Menu& menu)
+// Certification required:	Manager
+// Description:				Adds a new table to the database
+// Returns:					True if the table was added succefully, false otherwise
+bool DatabaseInterface::addTable(const Certification& certification)
 {
-	sql = std::string{ "SELECT * FROM menu;" };
-	std::vector<std::vector<std::string>> results{};
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
 
-	// Insert the base menu menu and remove it from the results
-	menu.id = std::stoi(results[0][INDEX_MENU_ID]);
-	menu.name = results[0][INDEX_MENU_NAME];
-	results.erase(results.begin());
-
-	// Fill in the menu's submenus
-	while (!results.empty())
-	{
-		for (int i{}; i < results.size(); i++)
-		{
-			Menu& parent{ menu };
-
-			if (parent.hasMenu(std::stoi(results[i][INDEX_MENU_PARENT_ID])))
-			{
-				bool found{ false };
-
-				while (!found)
-				{
-					// Parent ID was matched
-					if (std::stoi(results[i][INDEX_MENU_PARENT_ID]) == parent.id)
-					{
-						found = true;
-						parent.submenus.push_back(Menu{ std::stoi(results[i][INDEX_MENU_ID]), results[i][INDEX_MENU_NAME] });
-						results.erase(results.begin() + i);
-						// The element was just erased, so decrement the iterator to correctly advance to placing the next menu
-						--i;
-					}
-					// Otherwise, find the submenu which provides a path to the parent ID
-					else
-					{
-						for (auto& submenu : parent.submenus)
-						{
-							if (submenu.hasMenu(std::stoi(results[i][INDEX_MENU_PARENT_ID])))
-							{
-								parent = submenu;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	sql = std::string{ "SELECT * FROM item;" };
-	results.clear();
-	if (querySql(results) != ReturnCode::Success)
-		return ReturnCode::Error;
-	
-	// Fill items into their correct menus
-	for (const auto& item : results)
-	{
-		Menu* search{ &menu };
-		bool found{ false };
-		while (!found)
-		{
-			// If the item belongs in the current menu, add it
-			if (std::stoi(item[INDEX_ITEM_MENU_ID]) == search->id)
-			{
-				found = true;
-				search->items.push_back(Item{ std::stoi(item[INDEX_ITEM_ID]), item[INDEX_ITEM_NAME], std::stod(item[INDEX_ITEM_PRICE]) });
-			}
-			// Otherwise, find the submenu which provides a path to the parent ID
-			else
-			{
-				for (auto& submenu : search->submenus)
-				{
-					if (submenu.hasMenu(std::stoi(item[INDEX_ITEM_MENU_ID])))
-					{
-						search = &submenu;
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	return ReturnCode::Success;
 }
+
+// TO-DO: AUTOCALL THIS FUNCTION WHEN ALL PARTIES AT A TABLE ARE FINISHED
+// Certification required:	Manager, Waiter (If table is seated)
+// Description:				Updates the the table with tableId as the ID of the table as dirty
+// Returns:					True if the table was updated succefully, false otherwise
+bool DatabaseInterface::updateTableAsDirty(const Certification& certification, const int tableId)
+{
+
+}
+
+// Certification required:	Manager, Busser (If table is dirty)
+// Description:				Updates the the table with tableId as the ID of the table as ready
+// Returns:					True if the table was updated succefully, false otherwise
+bool DatabaseInterface::updateTableAsReady(const Certification& certification, const int tableId)
+{
+
+}
+
+// Certification required:	Manager
+// Description:				Updates the the table with tableId as the ID of the table as out of use
+// Returns:					True if the table was updated succefully, false otherwise
+bool DatabaseInterface::updateTableAsOutOfUse(const Certification& certification, const int tableId)
+{
+
+}
+
+// Certification required:	Manager, Host (If party is in wait queue), Waiter (If party is seated)
+// Description:				Updates the party with partyId as the ID of the party to finished, and cancels all outstanding orders associated with the party
+//							If the table the party was seated at is now empty, the table is updated as dirty
+// Returns:					True if the party and table were updated successfully, false otherwise
+bool DatabaseInterface::updatePartyAsFinished(const Certification& certification, const int partyId)
+{
+
+}
+
+// Certification required:	Manager, Waiter
+// Description:				Updates the the order with orderId as the ID of the order as placed
+// Returns:					True if the order was updated succefully, false otherwise
+bool DatabaseInterface::updateOrderAsPlaced(const Certification& certification, const int orderId)
+{
+
+}
+
+// Certification required:	Manager, Cook
+// Description:				Updates the the order with orderId as the ID of the order as made
+// Returns:					True if the order was updated succefully, false otherwise
+bool DatabaseInterface::updateOrderAsMade(const Certification& certification, const int orderId)
+{
+
+}
+
+// Certification required:	Manager, Waiter
+// Description:				Updates the the order with orderId as the ID of the order as delivered
+// Returns:					True if the order was updated succefully, false otherwise
+bool DatabaseInterface::updateOrderAsDelivered(const Certification& certification, const int orderId)
+{
+
+}
+
+// Certification required:	Manager, Waiter
+// Description:				Updates the the order with orderId as the ID of the order as finished and finalizes the amount received for it
+// Returns:					True if the order was updated succefully, false otherwise
+bool DatabaseInterface::updateOrderAsFinished(const Certification& certification, const int orderId)
+{
+
+}*/
