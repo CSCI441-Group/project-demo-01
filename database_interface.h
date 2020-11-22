@@ -6,7 +6,6 @@
 
 #include "sqlite3.h"
 #include "local_database.h"
-#include "employee.h"
 
 #define INDEX_MENU_ID 0
 #define INDEX_MENU_PARENT_ID 1
@@ -27,8 +26,7 @@
 #define INDEX_ADJUSTMENT_PRICE 3
 
 #define INDEX_TABLE_ID 0
-#define INDEX_TABLE_WAITER_ID 1
-#define INDEX_TABLE_STATUS 2
+#define INDEX_TABLE_STATUS 1
 
 #define INDEX_PARTY_ID 0
 #define INDEX_PARTY_TABLE_ID 1
@@ -72,6 +70,8 @@
 
 #define BASE_MENU_ID 0
 
+using namespace std;
+
 class DatabaseInterface
 {
 public:
@@ -87,7 +87,7 @@ public:
 	// Universal functionalities
 	bool clockIn(const Certification& certification);
 	bool clockOut(const Certification& certification);
-	bool updatePassword(const Certification& certification, const std::string& newPassword);
+	bool updatePassword(const Certification& certification, const string& newPassword);
 	
 	// Host functionalities
 	bool addParty(const Certification& certification, const int size);
@@ -97,7 +97,7 @@ public:
 	bool addOrder(const Certification& certification, const int partyId);
 	bool addOrderItem(const Certification& certification, const int orderId, const int itemId);
 	bool addOrderAdjustment(const Certification& certification, const int orderItemId, const int adjustmentId);
-	bool addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type type, const std::string& cardNumber);
+	bool addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type type, const string& cardNumber);
 	bool cancelOrder(const Certification& certification, const int orderId);
 	bool removeOrderItem(const Certification& certification, const int orderItemId);
 	bool removeOrderItemAdjustment(const Certification& certification, const int orderAdjustmentId);
@@ -114,26 +114,25 @@ public:
 	bool updateTableAsReady(const Certification& certification, const int tableId);
 
 	// Managerial employee functionalities
-	bool addEmployee(const Certification& certification, const Employee::Type type, const std::string& firstName, const std::string& lastName, const std::string& password);
-	bool updateEmployeeFirstName(const Certification& certification, const std::string& newFirstName);
-	bool updateEmployeeLastName(const Certification& certification, const std::string& newLastName);
+	bool addEmployee(const Certification& certification, const Employee::Type type, const string& firstName, const string& lastName, const string& password);
+	bool updateEmployeeFirstName(const Certification& certification, const string& newFirstName);
+	bool updateEmployeeLastName(const Certification& certification, const string& newLastName);
 	bool updateEmployeeType(const Certification& certification, const Employee::Type newType);
 	bool updateEmployeePayRate(const Certification& certification, const double newPayRate);
 
 	// Managerial menu functionalities
-	bool addMenu(const Certification& certification, const std::string& name, const int parentId = BASE_MENU_ID);
-	bool addItem(const Certification& certification, const int menuId, const std::string& name, const double price);
-	bool addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name);
-	bool addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price);
+	bool addMenu(const Certification& certification, const string& name, const int parentId = BASE_MENU_ID);
+	bool addItem(const Certification& certification, const int menuId, const string& name, const double price);
+	bool addAdjustmentGroup(const Certification& certification, const int itemId, const string& name);
+	bool addAdjustment(const Certification& certification, const int adjustmentGroupId, const string& name, const double price);
 	bool updateMenuParent(const Certification& certification, const int menuId, const int newParentId);
-	bool updateMenuName(const Certification& certification, const int menuId, const std::string& newName);
+	bool updateMenuName(const Certification& certification, const int menuId, const string& newName);
 	bool updateItemMenu(const Certification& certification, const int itemId, const int newMenuId);
-	bool updateItemName(const Certification& certification, const int itemId, const std::string& newName);
+	bool updateItemName(const Certification& certification, const int itemId, const string& newName);
 	bool updateItemPrice(const Certification& certification, const int itemId, double newPrice);
-	bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const std::string& newName);
-	bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const std::string& newName);
+	bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const string& newName);
+	bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const string& newName);
 	bool updateAdjustmentPrice(const Certification& certification, const int adjustmentId, const double newPrice);
-	bool updateTableAsSeated(const Certification& certification, const int tableId);
 	bool removeMenu(const Certification& certification, const int menuId);
 	bool removeItem(const Certification& certification, const int itemId);
 	bool removeAdjustmentGroup(const Certification& certification, const int adjustmentGroupId);
@@ -147,24 +146,20 @@ public:
 	
 
 
-
-	bool getEmployees(std::vector<Employee>& employees);
+	bool isClockedIn(const Certification& certification);
+	bool getEmployees(vector<Employee>& employees);
 	bool getMenu(Menu& menu);
-	bool getTables(std::vector<Table>& tables);
-	bool getParties(std::vector<Party>& parties);
-	bool getOrders(std::vector<Order>& orders);
-	bool getOrderItems(const int orderId, std::vector<OrderItem>& orderItems);
+	bool getTables(vector<Table>& tables);
+	bool getCurrentParties(vector<Party>& parties);
+	bool getCurrentOrders(vector<Order>& orders);
+	bool getOrderItems(const int orderId, vector<OrderItem>& orderItems);
 
 private:
 	bool createTables();
-	bool querySql(const std::string& sql);
-	bool querySql(const std::string& sql, std::vector<std::vector<std::string>>& results);
+	bool querySql(const string& sql);
+	bool querySql(const string& sql, vector<vector<string>>& results);
 
-	void syncLocalDatabase();
-
-	// Pointer to a local copy of the database to be synchronized with the current database
-	LocalDatabase localDatabase{};
-	std::vector<DatabaseSubscriber*> subscribers{};
+	vector<DatabaseSubscriber*> subscribers{};
 
 	// SQLite-specific members
 	static int callback(void* data, int argc, char** argv, char** azColName);

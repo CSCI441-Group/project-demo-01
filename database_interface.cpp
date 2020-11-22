@@ -502,7 +502,7 @@ bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certifica
 // Description:				Adds a new menu and associates it with a parent menu
 //							If no parent is specified, it is automatically created as a child of the base menu
 // Returns:					True if the menu was added successfully, false otherwise
-bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId)
+bool DatabaseInterface::addMenu(const Certification& certification, const string& name, const int parentId)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
@@ -521,7 +521,7 @@ bool DatabaseInterface::addMenu(const Certification& certification, const std::s
 // Certification required:	Manager
 // Description:				Adds a new item to a menu
 // Returns:					True if the item was added successfully, false otherwise
-bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const std::string& name, const double price)
+bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const string& name, const double price)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
@@ -540,7 +540,7 @@ bool DatabaseInterface::addItem(const Certification& certification, const int me
 // Certification required:	Manager
 // Description:				Adds a new adjustment group to an item
 // Returns:					True if the adjustment group was added successfully, false otherwise
-bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name)
+bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const string& name)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
@@ -559,7 +559,7 @@ bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, c
 // Certification required:	Manager
 // Description:				Adds a new adjustment to an adjustment group
 // Returns:					True if the adjustment was added successfully, false otherwise
-bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price)
+bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const string& name, const double price)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
@@ -576,12 +576,12 @@ bool DatabaseInterface::addAdjustment(const Certification& certification, const 
 }
 
 bool updateMenuParent(const Certification& certification, const int menuId, const int newParentId);
-bool updateMenuName(const Certification& certification, const int menuId, const std::string& newName);
+bool updateMenuName(const Certification& certification, const int menuId, const string& newName);
 bool updateItemMenu(const Certification& certification, const int itemId, const int newMenuId);
-bool updateItemName(const Certification& certification, const int itemId, const std::string& newName);
+bool updateItemName(const Certification& certification, const int itemId, const string& newName);
 bool updateItemPrice(const Certification& certification, const int itemId, double newPrice);
-bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const std::string& newName);
-bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const std::string& newName);
+bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const string& newName);
+bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const string& newName);
 bool updateAdjustmentPrice(const Certification& certification, const int adjustmentId, const double newPrice);
 bool updateTableAsSeated(const Certification& certification, const int tableId);
 
@@ -686,6 +686,113 @@ bool DatabaseInterface::removeAdjustment(const Certification& certification, con
 	else
 		return false;
 }
+
+bool DatabaseInterface::getMenu(Menu& menu)
+{
+	string sql{ "SELECT * FROM menu;" };
+	vector<vector<string>> menus{};
+	if (!querySql(sql, menus))
+		return false;
+
+	// Insert the base menu menu and remove it from the results
+	menu.id = stoi(menus[0][INDEX_MENU_ID]);
+	menu.name = menus[0][INDEX_MENU_NAME];
+	menus.erase(menus.begin());
+
+	// Fill in the menu's submenus
+	while (!menus.empty())
+	{
+		for (int i{}; i < menus.size(); i++)
+		{
+			Menu& parent{ menu };
+
+			if (parent.hasMenu(stoi(menus[i][INDEX_MENU_PARENT_ID])))
+			{
+				bool found{ false };
+
+				while (!found)
+				{
+					// Parent ID was matched
+					if (stoi(menus[i][INDEX_MENU_PARENT_ID]) == parent.id)
+					{
+						found = true;
+						parent.submenus.push_back(Menu{ stoi(menus[i][INDEX_MENU_ID]), stoi(menus[i][INDEX_MENU_PARENT_ID]), menus[i][INDEX_MENU_NAME] });
+						menus.erase(menus.begin() + i);
+						// The element was just erased, so decrement the iterator to correctly advance to placing the next menu
+						--i;
+					}
+					// Otherwise, find the submenu which provides a path to the parent ID
+					else
+					{
+						for (auto& submenu : parent.submenus)
+						{
+							if (submenu.hasMenu(stoi(menus[i][INDEX_MENU_PARENT_ID])))
+							{
+								parent = submenu;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	sql = string{ "SELECT * FROM item;" };
+	vector<vector<string>> items{};
+	if (!querySql(sql, items))
+		return false;
+
+	// Fill items into their correct menus
+	for (const auto& item : items)
+	{
+		Menu* search{ &menu };
+		bool found{ false };
+		while (!found)
+		{
+			// If the item belongs in the current menu, add it
+			if (stoi(item[INDEX_ITEM_MENU_ID]) == search->id)
+			{
+				found = true;
+				search->items.push_back(Item{ stoi(item[INDEX_ITEM_ID]), stoi(item[INDEX_ITEM_MENU_ID]), item[INDEX_ITEM_NAME], stod(item[INDEX_ITEM_PRICE]) });
+
+				sql = string{ "SELECT * FROM adjustment_group WHERE item_id=" + to_string(search->items.back().id) + ";" };
+				vector<vector<string>> adjustmentGroups{};
+				if (!querySql(sql, adjustmentGroups))
+					return false;
+
+				// Add the item's associated adjustment groups
+				for (const auto& adjustmentGroup : adjustmentGroups)
+				{
+					search->items.back().adjustmentGroups.push_back(AdjustmentGroup{ stoi(adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ID]), stoi(adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ITEM_ID]), adjustmentGroup[INDEX_ADJUSTMENT_GROUP_NAME] });
+					
+					sql = string{ "SELECT * FROM adjustment WHERE adjustment_group_id=" + to_string(search->items.back().adjustmentGroups.back().id) + ";" };
+					vector<vector<string>> adjustments{};
+					if (!querySql(sql, adjustments))
+						return false;
+					
+					// Add the adjustment group's associated adjustments
+					for (const auto& adjustment : adjustments)
+						search->items.back().adjustmentGroups.back().adjustments.push_back(Adjustment{ stoi(adjustment[INDEX_ADJUSTMENT_ID]), stoi(adjustment[INDEX_ADJUSTMENT_ADJUSTMENT_GROUP_ID]), adjustment[INDEX_ADJUSTMENT_NAME], stod(adjustment[INDEX_ADJUSTMENT_PRICE]) });
+				}
+			}
+			// Otherwise, find the submenu which provides a path to the parent ID
+			else
+			{
+				for (auto& submenu : search->submenus)
+				{
+					if (submenu.hasMenu(stoi(item[INDEX_ITEM_MENU_ID])))
+					{
+						search = &submenu;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 
 
 
