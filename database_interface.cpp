@@ -238,14 +238,14 @@ bool DatabaseInterface::updatePassword(const Certification& certification, const
 		return false;
 
 	string sql{ "UPDATE employee	\
-		SET password=" + newPassword + " " +
+		SET password='" + newPassword + "' " +
 		"WHERE id=" + to_string(certification.id) + ";" };
 	return querySql(sql);
 }
 
 // Certification required:	Manager, Host
 // Description:				Adds a new party to the database with status = InWaitQueue
-// Returns:					True if the party was added succefully, false otherwise
+// Returns:					True if the party was added successfully, false otherwise
 bool DatabaseInterface::addParty(const Certification& certification, const int size)
 {
 	Employee::Type type;
@@ -295,7 +295,7 @@ bool DatabaseInterface::updatePartyAsSeated(const Certification& certification, 
 
 // Certification required:	Manager, Waiter
 // Description:				Adds a new order and associates it with a party
-// Returns:					True if the order was added succefully, false otherwise
+// Returns:					True if the order was added successfully, false otherwise
 bool DatabaseInterface::addOrder(const Certification& certification, const int partyId)
 {
 	Employee::Type type;
@@ -314,7 +314,7 @@ bool DatabaseInterface::addOrder(const Certification& certification, const int p
 
 // Certification required:	Manager, Waiter
 // Description:				Adds a new item to an order and updates the order's total
-// Returns:					True if the order item was added succefully, false otherwise
+// Returns:					True if the order item was added successfully, false otherwise
 bool DatabaseInterface::addOrderItem(const Certification& certification, const int orderId, const int itemId)
 {
 	Employee::Type type;
@@ -341,7 +341,7 @@ bool DatabaseInterface::addOrderItem(const Certification& certification, const i
 
 // Certification required:	Manager, Waiter
 // Description:				Adds a new adjustment to an order item to the database with orderItemId as the ID of the order item and adjustmentId as the ID of the adjustment to associate the order adjustment with
-// Returns:					True if the order item was added succefully, false otherwise
+// Returns:					True if the order item was added successfully, false otherwise
 bool DatabaseInterface::addOrderAdjustment(const Certification& certification, const int orderItemId, const int adjustmentId)
 {
 	Employee::Type type;
@@ -375,7 +375,7 @@ bool DatabaseInterface::addOrderAdjustment(const Certification& certification, c
 
 // Certification required:	Manager, Waiter
 // Description:				Adds a new payment and associates it with an order
-// Returns:					True if the payment was added succefully, false otherwise
+// Returns:					True if the payment was added successfully, false otherwise
 bool DatabaseInterface::addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type paymentType, const string& cardNumber)
 {
 	Employee::Type type;
@@ -385,7 +385,7 @@ bool DatabaseInterface::addOrderPayment(const Certification& certification, cons
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
 		string sql{ "INSERT INTO payment(order_id,amount,type,card_number) \
-			VALUES(" + to_string(orderId) + "," + to_string(amount) + "," + to_string(static_cast<int>(paymentType)) + cardNumber + ");" };
+			VALUES(" + to_string(orderId) + "," + to_string(amount) + "," + to_string(static_cast<int>(paymentType)) + ",'" + cardNumber + "');" };
 		return querySql(sql);
 	}
 	else
@@ -394,7 +394,7 @@ bool DatabaseInterface::addOrderPayment(const Certification& certification, cons
 
 // Certification required:	Manager, Waiter
 // Description:				Removes an order and all of its associated items and adjustments
-// Returns:					True if the order, items, and adjustments were removed succefully, false otherwise
+// Returns:					True if the order, items, and adjustments were removed successfully, false otherwise
 bool DatabaseInterface::cancelOrder(const Certification& certification, const int orderId)
 {
 	Employee::Type type;
@@ -412,7 +412,7 @@ bool DatabaseInterface::cancelOrder(const Certification& certification, const in
 
 // Certification required:	Manager, Waiter
 // Description:				Removes an order item and all of its associated adjustments
-// Returns:					True if the item and adjustments were removed succefully, false otherwise
+// Returns:					True if the item and adjustments were removed successfully, false otherwise
 bool DatabaseInterface::removeOrderItem(const Certification& certification, const int orderItemId)
 {
 	Employee::Type type;
@@ -460,7 +460,7 @@ bool DatabaseInterface::removeOrderItem(const Certification& certification, cons
 
 // Certification required:	Manager, Waiter
 // Description:				Removes an order item adjustment
-// Returns:					True if the adjustment was removed succefully, false otherwise
+// Returns:					True if the adjustment was removed successfully, false otherwise
 bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certification, const int orderItemAdjustmentId)
 {
 	Employee::Type type;
@@ -492,6 +492,195 @@ bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certifica
 			UPDATE order_ \
 			SET total=total-" + adjustmentPrice + " \
 			WHERE id=" + orderId + ";" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Adds a new menu and associates it with a parent menu
+//							If no parent is specified, it is automatically created as a child of the base menu
+// Returns:					True if the menu was added successfully, false otherwise
+bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId = BASE_MENU_ID)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO menu(parent_id,name) \
+			VALUES(" + to_string(parentId) + ",'" + name + "');" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Adds a new item to a menu
+// Returns:					True if the item was added successfully, false otherwise
+bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const std::string& name, const double price)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO item(menu_id,name,price) \
+			VALUES(" + to_string(menuId) + ",'" + name + "'," + to_string(price) + ");" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Adds a new adjustment group to an item
+// Returns:					True if the adjustment group was added successfully, false otherwise
+bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO adjustment_group(item_id,name) \
+			VALUES(" + to_string(itemId) + ",'" + name + "');" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Adds a new adjustment to an adjustment group
+// Returns:					True if the adjustment was added successfully, false otherwise
+bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO adjustment(adjustment_group_id,name,price) \
+			VALUES(" + to_string(adjustmentGroupId) + ",'" + name + "'," + to_string(price) + ");" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+bool updateMenuParent(const Certification& certification, const int menuId, const int newParentId);
+bool updateMenuName(const Certification& certification, const int menuId, const std::string& newName);
+bool updateItemMenu(const Certification& certification, const int itemId, const int newMenuId);
+bool updateItemName(const Certification& certification, const int itemId, const std::string& newName);
+bool updateItemPrice(const Certification& certification, const int itemId, double newPrice);
+bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const std::string& newName);
+bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const std::string& newName);
+bool updateAdjustmentPrice(const Certification& certification, const int adjustmentId, const double newPrice);
+bool updateTableAsSeated(const Certification& certification, const int tableId);
+
+// Certification required:	Manager
+// Description:				Removes a menu and all associated items, adjustment groups, and adjustments
+//							The base menu cannot be removed
+// Returns:					True if the menu was removed successfully, false otherwise
+bool DatabaseInterface::removeMenu(const Certification& certification, const int menuId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string finalSql{};
+
+		string sql{ "SELECT * FROM item WHERE menu_id=" + to_string(menuId) + ";" };
+		vector<vector<string>> items{};
+		if (!querySql(sql, items))
+			return false;
+
+		for (const auto& item : items)
+		{
+			sql = string{ "SELECT * FROM adjustment_group WHERE item_id=" + item[INDEX_ITEM_ID] + ";" };
+			vector<vector<string>> adjustmentGroups{};
+			if (!querySql(sql, adjustmentGroups))
+				return false;
+
+			for (const auto& adjustmentGroup : adjustmentGroups)
+				finalSql.append(string{ "DELETE FROM adjustment WHERE adjustment_group_id=" + adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ID] + "; \
+				DELETE FROM adjustment_group WHERE id=" + adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ID] + ";" });
+			finalSql.append(string{ "DELETE FROM item WHERE id=" + item[INDEX_ITEM_ID] + ";" });
+		}
+		finalSql.append(string{ "DELETE FROM menu WHERE id=" + to_string(menuId) + ";" });
+		return querySql(finalSql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Removes an item and all associated adjustment groups and adjustments
+// Returns:					True if the item was removed successfully, false otherwise
+bool DatabaseInterface::removeItem(const Certification& certification, const int itemId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "SELECT * FROM adjustment_group WHERE item_id=" + to_string(itemId) + ";" };
+		vector<vector<string>> results;
+		if (!querySql(sql, results))
+			return false;
+
+		sql.clear();
+		for (const auto& adjustmentGroup : results)
+			sql.append(string{ "DELETE FROM adjustment WHERE adjustment_group_id=" + adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ID] + "; \
+				DELETE FROM adjustment_group WHERE id=" + adjustmentGroup[INDEX_ADJUSTMENT_GROUP_ID] + ";" });
+		sql.append(string{ "DELETE FROM item WHERE id=" + to_string(itemId) + ";" });
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Removes an adjustment group and all associated adjustments
+// Returns:					True if the adjustment group was removed successfully, false otherwise
+bool DatabaseInterface::removeAdjustmentGroup(const Certification& certification, const int adjustmentGroupId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "DELETE FROM adjustment WHERE adjustment_group_id=" + to_string(adjustmentGroupId) + "; \
+			DELETE FROM adjustment_group WHERE id=" + to_string(adjustmentGroupId) + ";" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Removes an adjustment
+// Returns:					True if the adjustment was removed successfully, false otherwise
+bool DatabaseInterface::removeAdjustment(const Certification& certification, const int adjustmentId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "DELETE FROM adjustment WHERE id=" + to_string(adjustmentId) + ";" };
 		return querySql(sql);
 	}
 	else

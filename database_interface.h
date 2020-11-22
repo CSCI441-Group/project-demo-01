@@ -163,7 +163,8 @@ private:
 	void syncLocalDatabase();
 
 	// Pointer to a local copy of the database to be synchronized with the current database
-	LocalDatabase* localDatabase{};
+	LocalDatabase localDatabase{};
+	std::vector<DatabaseSubscriber*> subscribers{};
 
 	// SQLite-specific members
 	static int callback(void* data, int argc, char** argv, char** azColName);
