@@ -447,7 +447,7 @@ bool DatabaseInterface::removeOrderItem(const Certification& certification, cons
 			return false;
 		price -= stod(results[0][INDEX_ITEM_PRICE]);
 
-		string sql{ "DELETE FROM order_item_adjustment WHERE order_item_id=" + to_string(orderItemId) + "; \
+		sql = string{ "DELETE FROM order_item_adjustment WHERE order_item_id=" + to_string(orderItemId) + "; \
 			DELETE FROM order_item WHERE id=" + to_string(orderItemId) + "; \
 			UPDATE order_ \
 			SET total=total-" + to_string(price) + " \
@@ -502,7 +502,7 @@ bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certifica
 // Description:				Adds a new menu and associates it with a parent menu
 //							If no parent is specified, it is automatically created as a child of the base menu
 // Returns:					True if the menu was added successfully, false otherwise
-bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId = BASE_MENU_ID)
+bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
