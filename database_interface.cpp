@@ -1,5 +1,7 @@
 #include "database_interface.h"
 
+using namespace std;
+
 DatabaseInterface::DatabaseInterface()
 {
 	rc = sqlite3_open("restaurant.db", &database);
@@ -8,7 +10,7 @@ DatabaseInterface::DatabaseInterface()
 		throw sqlite3_errmsg(database);
 
 	if (!createTables())
-		throw std::exception{};
+		throw exception{};
 }
 
 DatabaseInterface::~DatabaseInterface()
@@ -139,9 +141,9 @@ bool DatabaseInterface::createTables()
 int DatabaseInterface::callback(void* data, int argc, char** argv, char** azColName)
 {
 	// Reinterpret the user data as a vector that was passed in
-	std::vector<std::vector<std::string>> results = *reinterpret_cast<std::vector<std::vector<std::string>>*>(data);
+	vector<vector<string>> results = *reinterpret_cast<vector<vector<string>>*>(data);
 	// Add a new row of values to the vector unless the vector provided has a row ready to be used
-	results.push_back(std::vector<std::string>{});
+	results.push_back(vector<string>{});
 	// Fill the row with values
 	for (int i{}; i < argc; i++)
 	{
@@ -151,7 +153,7 @@ int DatabaseInterface::callback(void* data, int argc, char** argv, char** azColN
 	return 0;
 }
 
-bool DatabaseInterface::querySql(const std::string& sql)
+bool DatabaseInterface::querySql(const string& sql)
 {
 	try
 	{
@@ -168,7 +170,7 @@ bool DatabaseInterface::querySql(const std::string& sql)
 	}
 }
 
-bool DatabaseInterface::querySql(const std::string& sql, std::vector<std::vector<std::string>>& results)
+bool DatabaseInterface::querySql(const string& sql, vector<vector<string>>& results)
 {
 	try
 	{
@@ -189,13 +191,13 @@ bool DatabaseInterface::querySql(const std::string& sql, std::vector<std::vector
 // Returns:					True if the certification exists in the database, false otherwise
 bool DatabaseInterface::getEmployeeType(const Certification& certification, Employee::Type& type)
 {
-	std::string sql{ "SELECT type FROM employee WHERE id=" + std::to_string(certification.id) + " AND password='" + certification.password + "';" };
-	std::vector<std::vector<std::string>> results{};
+	string sql{ "SELECT type FROM employee WHERE id=" + to_string(certification.id) + " AND password='" + certification.password + "';" };
+	vector<vector<string>> results{};
 	
 	if (!querySql(sql, results) || results.empty())
 		return false;
 
-	type = static_cast<Employee::Type>(std::stoi(results[0][0]));
+	type = static_cast<Employee::Type>(stoi(results[0][0]));
 	return true;
 }
 
@@ -208,8 +210,8 @@ bool DatabaseInterface::clockIn(const Certification& certification)
 	if (!getEmployeeType(certification, type))
 		return false;
 
-	std::string sql{ "INSERT INTO shift(employee_id,in_time) \
-		VALUES(" + std::to_string(certification.id) + ",datetime('now'));" };
+	string sql{ "INSERT INTO shift(employee_id,in_time) \
+		VALUES(" + to_string(certification.id) + ",datetime('now'));" };
 	return querySql(sql);
 }
 
@@ -221,23 +223,23 @@ bool DatabaseInterface::clockOut(const Certification& certification)
 	if (!getEmployeeType(certification, type))
 		return false;
 
-	std::string sql{ "UPDATE shift \
+	string sql{ "UPDATE shift \
 		SET out_time = DATETIME('now') \
-		WHERE employee_id =" + std::to_string(certification.id) + " AND out_time IS NULL;" };
+		WHERE employee_id =" + to_string(certification.id) + " AND out_time IS NULL;" };
 	return querySql(sql);
 }
 
 // Description:             Updates the password of the user that matches the provided certification to newPassword
 // Returns:                 True if the update occurred successfully, false otherwise
-bool DatabaseInterface::updatePassword(const Certification& certification, const std::string& newPassword)
+bool DatabaseInterface::updatePassword(const Certification& certification, const string& newPassword)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
 		return false;
 
-	std::string sql{ "UPDATE employee	\
+	string sql{ "UPDATE employee	\
 		SET password=" + newPassword + " " +
-		"WHERE id=" + std::to_string(certification.id) + ";" };
+		"WHERE id=" + to_string(certification.id) + ";" };
 	return querySql(sql);
 }
 
@@ -252,8 +254,8 @@ bool DatabaseInterface::addParty(const Certification& certification, const int s
 
 	if (type == Employee::Type::Host || type == Employee::Type::Manager)
 	{
-		std::string sql{ "INSERT INTO party(size,status,wait_queue_time) \
-			VALUES(" + std::to_string(size) + "," + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ",DATETIME('now'));" };
+		string sql{ "INSERT INTO party(size,status,wait_queue_time) \
+			VALUES(" + to_string(size) + "," + to_string(static_cast<int>(Party::Status::InWaitQueue)) + ",DATETIME('now'));" };
 		return querySql(sql);
 	}
 	else
@@ -271,20 +273,20 @@ bool DatabaseInterface::updatePartyAsSeated(const Certification& certification, 
 
 	if (type == Employee::Type::Host)
 	{
-		std::string sql{ "SELECT * FROM party WHERE id=" + std::to_string(partyId) + " AND status=" + std::to_string(static_cast<int>(Party::Status::InWaitQueue)) + ";" };
-		std::vector<std::vector<std::string>> results{};
+		string sql{ "SELECT * FROM party WHERE id=" + to_string(partyId) + " AND status=" + to_string(static_cast<int>(Party::Status::InWaitQueue)) + ";" };
+		vector<vector<string>> results{};
 		if (!querySql(sql, results) || results.empty())
 			return false;
 	}
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Host)
 	{
-		std::string sql{ "UPDATE party \
-			SET status=" + std::to_string(static_cast<int>(Party::Status::Seated)) + ",table_id=" + std::to_string(tableId) + " " +
-			"WHERE id=" + std::to_string(partyId) + "; \
+		string sql{ "UPDATE party \
+			SET status=" + to_string(static_cast<int>(Party::Status::Seated)) + ",table_id=" + to_string(tableId) + " " +
+			"WHERE id=" + to_string(partyId) + "; \
 			UPDATE table_ \
-			SET status=" + std::to_string(static_cast<int>(Table::Status::Seated)) + " " +
-			"WHERE id=" + std::to_string(tableId) + ";" };
+			SET status=" + to_string(static_cast<int>(Table::Status::Seated)) + " " +
+			"WHERE id=" + to_string(tableId) + ";" };
 		return querySql(sql);
 	}
 	else
@@ -302,8 +304,8 @@ bool DatabaseInterface::addOrder(const Certification& certification, const int p
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{ "INSERT INTO order_(party_id,status,total) \
-			VALUES(" + std::to_string(partyId) + "," + std::to_string(static_cast<int>(Order::Status::Placing)) + ",0.00);" };
+		string sql{ "INSERT INTO order_(party_id,status,total,paid) \
+			VALUES(" + to_string(partyId) + "," + to_string(static_cast<int>(Order::Status::Placing)) + ",0.00,0);" };
 		return querySql(sql);
 	}
 	else
@@ -321,16 +323,16 @@ bool DatabaseInterface::addOrderItem(const Certification& certification, const i
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{ "SELECT * FROM item WHERE id=" + std::to_string(itemId) + ";" };
-		std::vector<std::vector<std::string>> results;
+		string sql{ "SELECT * FROM item WHERE id=" + to_string(itemId) + ";" };
+		vector<vector<string>> results;
 		if (!querySql(sql, results) || results.empty())
 			return false;
 
-		sql = std::string{ "INSERT INTO order_item(order_id,item_id) \
-			VALUES(" + std::to_string(orderId) + "," + std::to_string(itemId) + "); \
+		sql = string{ "INSERT INTO order_item(order_id,item_id) \
+			VALUES(" + to_string(orderId) + "," + to_string(itemId) + "); \
 			UPDATE order_ \
 			SET total=total+" + results[0][INDEX_ITEM_PRICE] + " \
-			WHERE id=" + std::to_string(orderId) + ";" };
+			WHERE id=" + to_string(orderId) + ";" };
 		return querySql(sql);
 	}
 	else
@@ -348,20 +350,20 @@ bool DatabaseInterface::addOrderAdjustment(const Certification& certification, c
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{ "SELECT * FROM adjustment WHERE id=" + std::to_string(adjustmentId) + ";" };
-		std::vector<std::vector<std::string>> results;
+		string sql{ "SELECT * FROM adjustment WHERE id=" + to_string(adjustmentId) + ";" };
+		vector<vector<string>> results;
 		if (!querySql(sql, results) || results.empty())
 			return false;
-		std::string adjustmentPrice{ results[0][INDEX_ADJUSTMENT_PRICE] };
+		string adjustmentPrice{ results[0][INDEX_ADJUSTMENT_PRICE] };
 
-		sql = std::string{ "SELECT * FROM order_item WHERE id=" + std::to_string(orderItemId) + ";" };
+		sql = string{ "SELECT * FROM order_item WHERE id=" + to_string(orderItemId) + ";" };
 		results.clear();
 		if (!querySql(sql, results) || results.empty())
 			return false;
-		std::string orderId{ results[0][INDEX_ORDER_ITEM_ORDER_ID] };
+		string orderId{ results[0][INDEX_ORDER_ITEM_ORDER_ID] };
 
-		sql = std::string{ "INSERT INTO order_item_adjustment(order_item_id,adjustment_id) \
-			VALUES(" + std::to_string(orderItemId) + "," + std::to_string(adjustmentId) + "); \
+		sql = string{ "INSERT INTO order_item_adjustment(order_item_id,adjustment_id) \
+			VALUES(" + to_string(orderItemId) + "," + to_string(adjustmentId) + "); \
 			UPDATE order_ \
 			SET total=total+" + adjustmentPrice + " \
 			WHERE id=" + orderId + ";" };
@@ -374,7 +376,7 @@ bool DatabaseInterface::addOrderAdjustment(const Certification& certification, c
 // Certification required:	Manager, Waiter
 // Description:				Adds a new payment and associates it with an order
 // Returns:					True if the payment was added succefully, false otherwise
-bool DatabaseInterface::addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type paymentType, const std::string& cardNumber)
+bool DatabaseInterface::addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type paymentType, const string& cardNumber)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
@@ -382,29 +384,35 @@ bool DatabaseInterface::addOrderPayment(const Certification& certification, cons
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{ "INSERT INTO payment(order_id,amount,type,card_number) \
-			VALUES(" + std::to_string(orderId) + "," + std::to_string(amount) + "," + std::to_string(static_cast<int>(paymentType)) + cardNumber + ");" };
+		string sql{ "INSERT INTO payment(order_id,amount,type,card_number) \
+			VALUES(" + to_string(orderId) + "," + to_string(amount) + "," + to_string(static_cast<int>(paymentType)) + cardNumber + ");" };
 		return querySql(sql);
 	}
 	else
 		return false;
 }
 
-bool DatabaseInterface::removeOrder(const Certification& certification, const int orderId)
+// Certification required:	Manager, Waiter
+// Description:				Removes an order and all of its associated items and adjustments
+// Returns:					True if the order, items, and adjustments were removed succefully, false otherwise
+bool DatabaseInterface::cancelOrder(const Certification& certification, const int orderId)
 {
 	Employee::Type type;
 	if (!getEmployeeType(certification, type))
 		return false;
 
-	if (type == Employee::Type::Manager)
+	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{  };
+		string sql{ "UPDATE order_ SET status=" + to_string(static_cast<int>(Order::Status::Finished)) + " WHERE id=" + to_string(orderId) + ";" };
 		return querySql(sql);
 	}
 	else
 		return false;
 }
 
+// Certification required:	Manager, Waiter
+// Description:				Removes an order item and all of its associated adjustments
+// Returns:					True if the item and adjustments were removed succefully, false otherwise
 bool DatabaseInterface::removeOrderItem(const Certification& certification, const int orderItemId)
 {
 	Employee::Type type;
@@ -413,13 +421,46 @@ bool DatabaseInterface::removeOrderItem(const Certification& certification, cons
 
 	if (type == Employee::Type::Manager)
 	{
-		std::string sql{  };
+		string sql{ "SELECT * FROM order_item_adjustment WHERE order_item_id=" + to_string(orderItemId) + ";" };
+		vector<vector<string>> results;
+		if (!querySql(sql, results) || results.empty())
+			return false;
+
+		double price{};
+		for (const auto& orderItemAdjustment : results)
+		{
+			sql = string{ "SELECT * FROM adjustment WHERE id=" + orderItemAdjustment[INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] + ";" };
+			results.clear();
+			if (!querySql(sql, results) || results.empty())
+				return false;
+			price += stod(results[0][INDEX_ADJUSTMENT_PRICE]);
+		}
+		sql = string{ "SELECT * FROM order_item WHERE id=" + to_string(orderItemId) + ";" };
+		results.clear();
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		string orderId{ results[0][INDEX_ORDER_ITEM_ORDER_ID] };
+		
+		sql = string{ "SELECT * FROM item WHERE id=" + results[0][INDEX_ORDER_ITEM_ITEM_ID] + ";" };
+		results.clear();
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		price -= stod(results[0][INDEX_ITEM_PRICE]);
+
+		string sql{ "DELETE FROM order_item_adjustment WHERE order_item_id=" + to_string(orderItemId) + "; \
+			DELETE FROM order_item WHERE id=" + to_string(orderItemId) + "; \
+			UPDATE order_ \
+			SET total=total-" + to_string(price) + " \
+			WHERE id=" + orderId + ";" };
 		return querySql(sql);
 	}
 	else
 		return false;
 }
 
+// Certification required:	Manager, Waiter
+// Description:				Removes an order item adjustment
+// Returns:					True if the adjustment was removed succefully, false otherwise
 bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certification, const int orderItemAdjustmentId)
 {
 	Employee::Type type;
@@ -428,20 +469,29 @@ bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certifica
 
 	if (type == Employee::Type::Manager || type == Employee::Type::Waiter)
 	{
-		std::string sql{ "SELECT * FROM order_item_adjustment WHERE id=" + std::to_string(orderItemAdjustmentId) + ";" };
-		std::vector<std::vector<std::string>> results;
+		string sql{ "SELECT * FROM order_item_adjustment WHERE id=" + to_string(orderItemAdjustmentId) + ";" };
+		vector<vector<string>> results;
 		if (!querySql(sql, results) || results.empty())
 			return false;
-		std::string adjustmentId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] };
-		std::string orderItemId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ORDER_ITEM_ID] };
+		string adjustmentId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] };
+		string orderItemId{ results[0][INDEX_ORDER_ITEM_ADJUSTMENT_ORDER_ITEM_ID] };
 
-		sql = std::string{ "SELECT * FROM order_item WHERE id=" + orderItemId + ";" };
+		sql = string{ "SELECT * FROM adjustment WHERE id=" + adjustmentId + ";" };
 		results.clear();
 		if (!querySql(sql, results) || results.empty())
 			return false;
-		std::string orderId{ results[0][INDEX_ORDER_ITEM_ITEM_ID] };
+		string adjustmentPrice{ results[0][INDEX_ADJUSTMENT_PRICE] };
 
-		//sql{  };
+		sql = string{ "SELECT * FROM order_item WHERE id=" + orderItemId + ";" };
+		results.clear();
+		if (!querySql(sql, results) || results.empty())
+			return false;
+		string orderId{ results[0][INDEX_ORDER_ITEM_ITEM_ID] };
+
+		sql = string{ "DELETE FROM order_item_adjustment WHERE id=" + to_string(orderItemAdjustmentId) + "; \
+			UPDATE order_ \
+			SET total=total-" + adjustmentPrice + " \
+			WHERE id=" + orderId + ";" };
 		return querySql(sql);
 	}
 	else
@@ -462,7 +512,7 @@ bool DatabaseInterface::example(const Certification& certification)
 
 	if (type == Employee::Type::Manager)
 	{
-		std::string sql{  };
+		string sql{  };
 		return querySql(sql);
 	}
 	else
@@ -486,9 +536,9 @@ bool DatabaseInterface::updateTableAsSeated(const Certification& certification, 
 
 	if (type == Employee::Type::Manager)
 	{
-		std::string sql{ "UPDATE table_ \
-			SET status=" + std::to_string(static_cast<int>(Table::Status::Seated)) + " " +
-			"WHERE id=" + std::to_string(tableId) + ";" };
+		string sql{ "UPDATE table_ \
+			SET status=" + to_string(static_cast<int>(Table::Status::Seated)) + " " +
+			"WHERE id=" + to_string(tableId) + ";" };
 		return querySql(sql);
 	}
 	else
@@ -525,7 +575,7 @@ bool DatabaseInterface::updateTableAsSeated(const Certification& certification, 
 // Certification required:	Manager
 // Description:				Adds a new employee to the database with information provided
 // Returns:					True if the employee was added succefully, false otherwise
-bool DatabaseInterface::addEmployee(const Certification& certification, const Employee::Type type, const std::string& firstName, const std::string& lastName, const std::string& password)
+bool DatabaseInterface::addEmployee(const Certification& certification, const Employee::Type type, const string& firstName, const string& lastName, const string& password)
 {
 
 }
@@ -533,7 +583,7 @@ bool DatabaseInterface::addEmployee(const Certification& certification, const Em
 // Certification required:	Manager
 // Description:				Adds a new menu to the database with parentId as the ID of the parent menu
 // Returns:					True if the menu was added succefully, false otherwise
-bool DatabaseInterface::addMenu(const Certification& certification, const std::string& name, const int parentId = BASE_MENU_ID)
+bool DatabaseInterface::addMenu(const Certification& certification, const string& name, const int parentId = BASE_MENU_ID)
 {
 
 }
@@ -541,7 +591,7 @@ bool DatabaseInterface::addMenu(const Certification& certification, const std::s
 // Certification required:	Manager
 // Description:				Adds a new item to the database with menuId as the ID of the menu to associate the item with
 // Returns:					True if the item was added succefully, false otherwise
-bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const std::string& name, const double price)
+bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const string& name, const double price)
 {
 
 }
@@ -549,7 +599,7 @@ bool DatabaseInterface::addItem(const Certification& certification, const int me
 // Certification required:	Manager
 // Description:				Adds a new adjustment group to the database with itemId as the ID of the item to associate the adjustment group with
 // Returns:					True if the adjustment group was added succefully, false otherwise
-bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const std::string& name)
+bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const string& name)
 {
 
 }
@@ -557,7 +607,7 @@ bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, c
 // Certification required:	Manager
 // Description:				Adds a new adjustment to the database with adjustmentGroupId as the ID of the adjustmentGroup to associate the adjustment with
 // Returns:					True if the adjustment was added succefully, false otherwise
-bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const std::string& name, const double price)
+bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const string& name, const double price)
 {
 
 }

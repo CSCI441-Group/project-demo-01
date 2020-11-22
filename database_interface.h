@@ -56,6 +56,7 @@
 #define INDEX_ORDER_PLACE_TIME 4
 #define INDEX_ORDER_DELIVER_TIME 5
 #define INDEX_ORDER_TIP 6
+#define INDEX_ORDER_PAID 7
 
 #define INDEX_ORDER_ITEM_ID 0
 #define INDEX_ORDER_ITEM_ORDER_ID 1
@@ -97,7 +98,7 @@ public:
 	bool addOrderItem(const Certification& certification, const int orderId, const int itemId);
 	bool addOrderAdjustment(const Certification& certification, const int orderItemId, const int adjustmentId);
 	bool addOrderPayment(const Certification& certification, const int orderId, double amount, const Payment::Type type, const std::string& cardNumber);
-	bool removeOrder(const Certification& certification, const int orderId);
+	bool cancelOrder(const Certification& certification, const int orderId);
 	bool removeOrderItem(const Certification& certification, const int orderItemId);
 	bool removeOrderItemAdjustment(const Certification& certification, const int orderAdjustmentId);
 	bool updateOrderAsPlaced(const Certification& certification, const int orderId);
