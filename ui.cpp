@@ -94,6 +94,7 @@ void LoginScreen(HWND hWnd)
 {
 	CreateWindowW(L"STATIC", L"Enter login credentials", WS_VISIBLE | WS_CHILD | SS_CENTER, 150, 150, 200, 20, hWnd, NULL, NULL, NULL);
 	CreateWindowW(L"EDIT", L". . .", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 175, 300, 20, hWnd, NULL, NULL, NULL);
+	//perhaps use ES_PASSWORD for password child windows
 }
 
 void ClearScreen(HWND hWnd)
