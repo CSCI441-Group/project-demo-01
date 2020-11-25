@@ -10,6 +10,8 @@ LRESULT CALLBACK testWindow(HWND, UINT, WPARAM, LPARAM);
 
 void AddMenu(HWND);
 void StartScreen(HWND);
+void LoginScreen(HWND);
+void ClearScreen(HWND);
 
 HMENU hMenu;
 
@@ -26,7 +28,7 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 	if (!RegisterClassW(&test))
 		return -1;
 
-	CreateWindowW(L"WindowClass", L"Login", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, NULL, NULL, NULL, NULL);
+	CreateWindowW(L"WindowClass", L"Diner POS", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, NULL, NULL, NULL, NULL);
 
 	MSG msg = { 0 };
 	while (GetMessage(&msg, NULL, NULL, NULL))
@@ -49,6 +51,7 @@ LRESULT CALLBACK testWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 			DestroyWindow(hWnd);
 			break;
 		case FILE_MENU_LOGIN:
+			LoginScreen(hWnd);
 			break;
 		case FILE_MENU_LOGOUT:
 			break;
@@ -83,5 +86,18 @@ void AddMenu(HWND hWnd)
 
 void StartScreen(HWND hWnd)
 {
-	CreateWindowW(L"static", L"\t\tPOS\n\n\tChoose a menu function", WS_VISIBLE | WS_CHILD, 100, 100, 300, 50, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"STATIC", L"\nDiner POS", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER, 200, 70, 100, 50, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"STATIC", L"Choose a menu function", WS_VISIBLE | WS_CHILD | SS_CENTER, 100, 150, 300, 60, hWnd, NULL, NULL, NULL);
+}
+
+void LoginScreen(HWND hWnd)
+{
+	CreateWindowW(L"STATIC", L"Enter login credentials", WS_VISIBLE | WS_CHILD | SS_CENTER, 150, 150, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"EDIT", L". . .", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 175, 300, 20, hWnd, NULL, NULL, NULL);
+}
+
+void ClearScreen(HWND hWnd)
+{
+	//run if statements to find any open child windows
+	//find way to grab identifier and use CloseWindow function on child windows ie. CloseWindow(WS_CHILD identifier)
 }
