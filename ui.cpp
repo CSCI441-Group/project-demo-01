@@ -5,8 +5,9 @@
 #define FILE_MENU_LOGIN 1
 #define FILE_MENU_LOGOUT 2
 #define FILE_MENU_EXIT 3
+#define LOGIN_BUTTON 4
 
-LRESULT CALLBACK testWindow(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK MainWindow(HWND, UINT, WPARAM, LPARAM);
 
 void AddMenu(HWND);
 void StartScreen(HWND);
@@ -23,7 +24,7 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 	test.hCursor = LoadCursor(NULL, IDC_ARROW);
 	test.hInstance = hInst;
 	test.lpszClassName = L"WindowClass";
-	test.lpfnWndProc = testWindow;
+	test.lpfnWndProc = MainWindow;
 
 	if (!RegisterClassW(&test))
 		return -1;
@@ -41,12 +42,12 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 	return 0;
 }
 
-LRESULT CALLBACK testWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+LRESULT CALLBACK MainWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 {
 	switch (msg)
 	{
 	case WM_COMMAND:
-		switch (wp)
+		switch (LOWORD(wp))
 		{
 		case FILE_MENU_EXIT:
 			DestroyWindow(hWnd);
@@ -55,6 +56,9 @@ LRESULT CALLBACK testWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 			LoginScreen(hWnd);
 			break;
 		case FILE_MENU_LOGOUT:
+			break;
+		case LOGIN_BUTTON:
+			//put login functionality here
 			break;
 		}
 		break;
@@ -97,8 +101,7 @@ void LoginScreen(HWND hWnd)
 	CreateWindowW(L"EDIT", L". . .", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 175, 300, 20, hWnd, NULL, NULL, NULL);
 	//perhaps use ES_PASSWORD for password child windows
 	//find out how to grab text input in box and read into main
-	HWND loginButton = CreateWindowW(L"BUTTON", L"Login", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 200, 210, 100, 40, hWnd, NULL, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-	//find out how to recognize button input
+	HWND loginButton = CreateWindowW(L"BUTTON", L"Login", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 200, 210, 100, 40, hWnd, (HMENU)LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 }
 
 void ClearScreen(HWND hWnd)
