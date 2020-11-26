@@ -36,6 +36,7 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+	//this is just for easy copy paste for testing functionality
 	//MessageBoxW(NULL, L"hello", L"Testing", MB_OK);
 	return 0;
 }
@@ -95,6 +96,9 @@ void LoginScreen(HWND hWnd)
 	CreateWindowW(L"STATIC", L"Enter login credentials", WS_VISIBLE | WS_CHILD | SS_CENTER, 150, 150, 200, 20, hWnd, NULL, NULL, NULL);
 	CreateWindowW(L"EDIT", L". . .", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 175, 300, 20, hWnd, NULL, NULL, NULL);
 	//perhaps use ES_PASSWORD for password child windows
+	//find out how to grab text input in box and read into main
+	HWND loginButton = CreateWindowW(L"BUTTON", L"Login", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 200, 210, 100, 40, hWnd, NULL, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+	//find out how to recognize button input
 }
 
 void ClearScreen(HWND hWnd)
