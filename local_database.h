@@ -7,7 +7,7 @@ using namespace std;
 
 struct DateTime
 {
-
+    DateTime(string dateTime) {}
 
     int year{};
     int month{};
@@ -116,9 +116,9 @@ struct Party
     int tableId{};
     int size{};
     Status status{};
-    DateTime waitQueueTime{};
-    DateTime seatedTime{};
-    DateTime finishedTime{};
+    DateTime waitQueueTime;
+    DateTime seatedTime;
+    DateTime finishedTime;
 };
 
 struct OrderItemAdjustment
@@ -155,15 +155,15 @@ struct Order
     };
 
     Order(const int id, const int partyId, const Status status, const double total, const DateTime placeTime, const DateTime deliverTime, const double tip, const bool paid) :
-        id{ id }, partyId{ partyId }, status{ status }, total{ total }
+        id{ id }, partyId{ partyId }, status{ status }, total{ total }, placeTime{ placeTime }, deliverTime{ deliverTime }
     {}
 
     int id{};
     int partyId{};
     Status status{};
     double total{};
-    DateTime placeTime{};
-    DateTime deliverTime{};
+    DateTime placeTime;
+    DateTime deliverTime;
     double tip{};
     bool paid{ false };
     vector<OrderItem> items{};

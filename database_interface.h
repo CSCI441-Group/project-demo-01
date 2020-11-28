@@ -147,12 +147,15 @@ public:
 
 
 	bool isClockedIn(const Certification& certification);
-	bool getEmployees(vector<Employee>& employees);
+
+	bool getEmployees(const Certification& certification, vector<Employee>& employees);
 	bool getMenu(Menu& menu);
 	bool getTables(vector<Table>& tables);
-	bool getCurrentParties(vector<Party>& parties);
-	bool getCurrentOrders(vector<Order>& orders);
-	bool getOrderItems(const int orderId, vector<OrderItem>& orderItems);
+	bool getPartiesAtTable(vector<Party>& parties, const int tableId);
+	bool getPartiesInWaitQueue(vector<Party>& parties);
+	bool getOrdersWithParty(vector<Order>& orders, const int partyId);
+	bool getOrderWithId(Order& order, const int orderId);
+	bool getPlacedOrders(vector<Order>& orders);
 
 private:
 	bool createTables();

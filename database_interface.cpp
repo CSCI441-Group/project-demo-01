@@ -121,8 +121,8 @@ bool DatabaseInterface::createTables()
 			  card_number TEXT \
 			); \
 			 \
-			INSERT OR IGNORE INTO employee(id, first_name, last_name, password, type) \
-			VALUES(0, 'Admin', 'User', 'password', 0); \
+			INSERT OR IGNORE INTO employee(id, first_name, last_name, password, type, pay_rate) \
+			VALUES(0, 'Admin', 'User', 'password', 0, 0.00); \
 			 \
 			INSERT OR IGNORE INTO menu(id, parent_id, name) \
 			VALUES(0, 0, 'Menu');", nullptr, nullptr, &errorMessage);
@@ -687,6 +687,22 @@ bool DatabaseInterface::removeAdjustment(const Certification& certification, con
 		return false;
 }
 
+// Certification required:	Any
+// Description:				Gets whether an employee is clocked in or not
+// Returns:					True if the employee is clocked in, false otherwise
+bool DatabaseInterface::isClockedIn(const Certification& certification)
+{
+	string sql{ "SELECT * FROM shift WHERE employee_id=" + to_string(certification.id) + " AND out_time IS NULL;" };
+	vector<vector<string>> shiftResults{};
+	if (!querySql(sql, shiftResults) || shiftResults.empty())
+		return false;
+	else
+		return true;
+}
+
+// Certification required:	Any
+// Description:				Fills menu with the base menu with all submenus, items, adjustment groups, and adjustments filled
+// Returns:					True if the menu was filled successfully, false otherwise
 bool DatabaseInterface::getMenu(Menu& menu)
 {
 	string sql{ "SELECT * FROM menu;" };
@@ -786,6 +802,189 @@ bool DatabaseInterface::getMenu(Menu& menu)
 						break;
 					}
 				}
+			}
+		}
+	}
+
+	return true;
+}
+
+// Certification required:	Manager
+// Description:				Fills employees with the details of all employees in the database
+// Returns:					True if employees was filled successfully, false otherwise
+bool DatabaseInterface::getEmployees(const Certification& certification, vector<Employee>& employees)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "SELECT * FROM employee;" };
+		vector<vector<string>> results{};
+		if (!querySql(sql, results))
+			return false;
+
+		for (const auto& employee : results)
+			employees.push_back(Employee{ Certification{ stoi(employee[INDEX_EMPLOYEE_ID]), employee[INDEX_EMPLOYEE_PASSWORD] }, static_cast<Employee::Type>(stoi(employee[INDEX_EMPLOYEE_TYPE])), employee[INDEX_EMPLOYEE_FIRST_NAME], employee[INDEX_EMPLOYEE_LAST_NAME], stod(employee[INDEX_EMPLOYEE_PAY_RATE]) });
+		
+		return true;
+	}
+	else
+		return false;
+}
+
+// Certification required:	Any
+// Description:				Fills tables with the details of all tables in the database
+// Returns:					True if tables was filled successfully, false otherwise
+bool DatabaseInterface::getTables(vector<Table>& tables)
+{
+	string sql{ "SELECT * FROM tables;" };
+	vector<vector<string>> results{};
+	if (!querySql(sql, results))
+		return false;
+
+	for (const auto& table : results)
+		tables.push_back(Table{ stoi(table[INDEX_TABLE_ID]), static_cast<Table::Status>(stoi(table[INDEX_TABLE_STATUS])) });
+
+	return true;
+}
+
+// Certification required:	Any
+// Description:				Fills parties with the details of all parties seated at a table
+// Returns:					True if parties was filled successfully, false otherwise
+bool DatabaseInterface::getPartiesAtTable(vector<Party>& parties, const int tableId)
+{
+	string sql{ "SELECT * FROM party WHERE table_id=" + to_string(tableId) + ";" };
+	vector<vector<string>> results{};
+	if (!querySql(sql, results))
+		return false;
+
+	for (const auto& party : results)
+		parties.push_back(Party{ stoi(party[INDEX_PARTY_ID]), stoi(party[INDEX_PARTY_TABLE_ID]), stoi(party[INDEX_PARTY_SIZE]), static_cast<Party::Status>(stoi(party[INDEX_PARTY_STATUS])), DateTime{ party[INDEX_PARTY_WAIT_QUEUE_TIME] }, DateTime{ party[INDEX_PARTY_SEATED_TIME] }, DateTime{ party[INDEX_PARTY_FINISHED_TIME] } });
+
+	return true;
+}
+
+// Certification required:	Any
+// Description:				Fills parties with the details of all parties in the wait queue
+//							The party that has been in the queue the longest will be at the front of the filled vector
+// Returns:					True if parties was filled successfully, false otherwise
+bool DatabaseInterface::getPartiesInWaitQueue(vector<Party>& parties)
+{
+	string sql{ "SELECT * FROM party WHERE status=" + to_string(static_cast<int>(Party::Status::InWaitQueue)) + " ORDER BY wait_queue_time ASC;" };
+	vector<vector<string>> results{};
+	if (!querySql(sql, results))
+		return false;
+
+	for (const auto& party : results)
+		parties.push_back(Party{ stoi(party[INDEX_PARTY_ID]), stoi(party[INDEX_PARTY_TABLE_ID]), stoi(party[INDEX_PARTY_SIZE]), static_cast<Party::Status>(stoi(party[INDEX_PARTY_STATUS])), DateTime{ party[INDEX_PARTY_WAIT_QUEUE_TIME] }, DateTime{ party[INDEX_PARTY_SEATED_TIME] }, DateTime{ party[INDEX_PARTY_FINISHED_TIME] } });
+
+	return true;
+}
+
+// Certification required:	Any
+// Description:				Fills orders with the surface details of all associated orders
+// Returns:					True if parties was filled successfully, false otherwise
+bool DatabaseInterface::getOrdersWithParty(vector<Order>& orders, const int partyId)
+{
+	string sql{ "SELECT * FROM order_ WHERE party_id=" + to_string(partyId) + ";" };
+	vector<vector<string>> results{};
+	if (!querySql(sql, results))
+		return false;
+
+	for (const auto& order : results)
+		orders.push_back(Order{ stoi(order[INDEX_ORDER_ID]), stoi(order[INDEX_ORDER_PARTY_ID]), static_cast<Order::Status>(stoi(order[INDEX_ORDER_STATUS])), stod(order[INDEX_ORDER_TOTAL]), DateTime{ order[INDEX_ORDER_PLACE_TIME] }, DateTime{ order[INDEX_ORDER_DELIVER_TIME] }, stod(order[INDEX_ORDER_TIP]), static_cast<bool>(stoi(order[INDEX_ORDER_PAID])) });
+
+	return true;
+}
+
+// Certification required:	Any
+// Description:				Fills order fully, including its surface details, order items, and order adjustments
+// Returns:					True if parties was filled successfully, false otherwise
+bool DatabaseInterface::getOrderWithId(Order& order, const int orderId)
+{
+	string sql{ "SELECT * FROM order_ WHERE id=" + to_string(orderId) + ";" };
+	vector<vector<string>> orderResults{};
+	if (!querySql(sql, orderResults) || orderResults.empty())
+		return false;
+
+	order = Order{ stoi(orderResults[0][INDEX_ORDER_ID]), stoi(orderResults[0][INDEX_ORDER_PARTY_ID]), static_cast<Order::Status>(stoi(orderResults[0][INDEX_ORDER_STATUS])), stod(orderResults[0][INDEX_ORDER_TOTAL]), DateTime{ orderResults[0][INDEX_ORDER_PLACE_TIME] }, DateTime{ orderResults[0][INDEX_ORDER_DELIVER_TIME] }, stod(orderResults[0][INDEX_ORDER_TIP]), static_cast<bool>(stoi(orderResults[0][INDEX_ORDER_PAID])) };
+	
+	sql = string{ "SELECT * FROM order_item WHERE order_id=" + to_string(orderId) + ";" };
+	vector<vector<string>> orderItemResults{};
+	if (!querySql(sql, orderItemResults))
+		return false;
+
+	for (const auto& orderItem : orderItemResults)
+	{
+		sql = string{ "SELECT * FROM item WHERE id=" + orderItem[INDEX_ORDER_ITEM_ITEM_ID] + ";" };
+		vector<vector<string>> itemResults{};
+		if (!querySql(sql, itemResults) || itemResults.empty())
+			return false;
+
+		order.items.push_back(OrderItem{ stoi(orderItem[INDEX_ORDER_ITEM_ID]), stoi(orderItem[INDEX_ORDER_ITEM_ORDER_ID]), Item{ stoi(itemResults[0][INDEX_ITEM_ID]), stoi(itemResults[0][INDEX_ITEM_MENU_ID]), itemResults[0][INDEX_ITEM_NAME], stod(itemResults[0][INDEX_ITEM_PRICE]) } });
+
+		sql = string{ "SELECT * FROM order_item_adjustment WHERE order_item_id=" + to_string(order.items.back().id) + ";" };
+		vector<vector<string>> orderAdjustmentResults{};
+		if (!querySql(sql, orderAdjustmentResults))
+			return false;
+
+		for (const auto& orderAdjustment : orderAdjustmentResults)
+		{
+			sql = string{ "SELECT * FROM adjustment WHERE id=" + orderAdjustment[INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] + ";" };
+			vector<vector<string>> adjustmentResults{};
+			if (!querySql(sql, adjustmentResults) || adjustmentResults.empty())
+				return false;
+
+			order.items.back().adjustments.push_back(OrderItemAdjustment{ order.items.back().id, Adjustment{ stoi(adjustmentResults[0][INDEX_ADJUSTMENT_ID]), stoi(adjustmentResults[0][INDEX_ADJUSTMENT_ADJUSTMENT_GROUP_ID]), adjustmentResults[0][INDEX_ADJUSTMENT_NAME], stod(adjustmentResults[0][INDEX_ADJUSTMENT_PRICE]) } });
+		}
+	}
+
+	return true;
+}
+
+// Certification required:	Any
+// Description:				Fully fills all orders being prepared by kitchen staff, including their surface details, order items, order adjustments
+// Returns:					True if parties was filled successfully, false otherwise
+bool DatabaseInterface::getPlacedOrders(vector<Order>& orders)
+{
+	string sql{ "SELECT * FROM order_ WHERE status=" + to_string(static_cast<int>(Order::Status::Placed)) + ";" };
+	vector<vector<string>> orderResults{};
+	if (!querySql(sql, orderResults))
+		return false;
+
+	for (const auto& order : orderResults)
+	{
+		orders.push_back(Order{ stoi(order[INDEX_ORDER_ID]), stoi(order[INDEX_ORDER_PARTY_ID]), static_cast<Order::Status>(stoi(order[INDEX_ORDER_STATUS])), stod(order[INDEX_ORDER_TOTAL]), DateTime{ order[INDEX_ORDER_PLACE_TIME] }, DateTime{ order[INDEX_ORDER_DELIVER_TIME] }, stod(order[INDEX_ORDER_TIP]), static_cast<bool>(stoi(order[INDEX_ORDER_PAID])) });
+
+		sql = string{ "SELECT * FROM order_item WHERE order_id=" + to_string(orders.back().id) + ";" };
+		vector<vector<string>> orderItemResults{};
+		if (!querySql(sql, orderItemResults))
+			return false;
+
+		for (const auto& orderItem : orderItemResults)
+		{
+			sql = string{ "SELECT * FROM item WHERE id=" + orderItem[INDEX_ORDER_ITEM_ITEM_ID] + ";" };
+			vector<vector<string>> itemResults{};
+			if (!querySql(sql, itemResults) || itemResults.empty())
+				return false;
+
+			orders.back().items.push_back(OrderItem{ stoi(orderItem[INDEX_ORDER_ITEM_ID]), stoi(orderItem[INDEX_ORDER_ITEM_ORDER_ID]), Item{ stoi(itemResults[0][INDEX_ITEM_ID]), stoi(itemResults[0][INDEX_ITEM_MENU_ID]), itemResults[0][INDEX_ITEM_NAME], stod(itemResults[0][INDEX_ITEM_PRICE]) } });
+
+			sql = string{ "SELECT * FROM order_item_adjustment WHERE order_item_id=" + to_string(orders.back().items.back().id) + ";" };
+			vector<vector<string>> orderAdjustmentResults{};
+			if (!querySql(sql, orderAdjustmentResults))
+				return false;
+
+			for (const auto& orderAdjustment : orderAdjustmentResults)
+			{
+				sql = string{ "SELECT * FROM adjustment WHERE id=" + orderAdjustment[INDEX_ORDER_ITEM_ADJUSTMENT_ADJUSTMENT_ID] + ";" };
+				vector<vector<string>> adjustmentResults{};
+				if (!querySql(sql, adjustmentResults) || adjustmentResults.empty())
+					return false;
+
+				orders.back().items.back().adjustments.push_back(OrderItemAdjustment{ orders.back().items.back().id, Adjustment{ stoi(adjustmentResults[0][INDEX_ADJUSTMENT_ID]), stoi(adjustmentResults[0][INDEX_ADJUSTMENT_ADJUSTMENT_GROUP_ID]), adjustmentResults[0][INDEX_ADJUSTMENT_NAME], stod(adjustmentResults[0][INDEX_ADJUSTMENT_PRICE]) } });
 			}
 		}
 	}
