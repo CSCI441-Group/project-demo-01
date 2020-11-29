@@ -79,8 +79,6 @@ public:
 	DatabaseInterface();
 	~DatabaseInterface();
 
-	// Ignore this, will be removed when finished
-	bool example(const Certification&);
 
 	bool getEmployeeType(const Certification& certification, Employee::Type& type);
 
@@ -114,7 +112,7 @@ public:
 	bool updateTableAsReady(const Certification& certification, const int tableId);
 
 	// Managerial employee functionalities
-	bool addEmployee(const Certification& certification, const Employee::Type type, const string& firstName, const string& lastName, const string& password);
+	bool addEmployee(const Certification& certification, const Employee::Type newType, const string& firstName, const string& lastName, const string& password, const double payRate);
 	bool updateEmployeeFirstName(const Certification& certification, const string& newFirstName);
 	bool updateEmployeeLastName(const Certification& certification, const string& newLastName);
 	bool updateEmployeeType(const Certification& certification, const Employee::Type newType);

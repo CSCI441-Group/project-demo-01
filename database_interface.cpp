@@ -499,6 +499,25 @@ bool DatabaseInterface::removeOrderItemAdjustment(const Certification& certifica
 }
 
 // Certification required:	Manager
+// Description:				Adds an employee to the database
+// Returns:					True if the employee was added successfully, false otherwise
+bool DatabaseInterface::addEmployee(const Certification& certification, const Employee::Type newType, const string& firstName, const string& lastName, const string& password, const double payRate)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO employee(first_name,last_name,password,type,pay_rate) \
+			VALUES('" + firstName + "','" + lastName + "','" + password + "'," + to_string(static_cast<int>(newType)) + "," + to_string(payRate) + ");" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
 // Description:				Adds a new menu and associates it with a parent menu
 //							If no parent is specified, it is automatically created as a child of the base menu
 // Returns:					True if the menu was added successfully, false otherwise
@@ -574,16 +593,6 @@ bool DatabaseInterface::addAdjustment(const Certification& certification, const 
 	else
 		return false;
 }
-
-bool updateMenuParent(const Certification& certification, const int menuId, const int newParentId);
-bool updateMenuName(const Certification& certification, const int menuId, const string& newName);
-bool updateItemMenu(const Certification& certification, const int itemId, const int newMenuId);
-bool updateItemName(const Certification& certification, const int itemId, const string& newName);
-bool updateItemPrice(const Certification& certification, const int itemId, double newPrice);
-bool updateAdjustmentGroupName(const Certification& certification, const int adjustmentGroupId, const string& newName);
-bool updateAdjustmentName(const Certification& certification, const int adjustmentId, const string& newName);
-bool updateAdjustmentPrice(const Certification& certification, const int adjustmentId, const double newPrice);
-bool updateTableAsSeated(const Certification& certification, const int tableId);
 
 // Certification required:	Manager
 // Description:				Removes a menu and all associated items, adjustment groups, and adjustments
@@ -992,6 +1001,43 @@ bool DatabaseInterface::getPlacedOrders(vector<Order>& orders)
 	return true;
 }
 
+// Certification required:	Manager
+// Description:				Adds a table to the database
+// Returns:					True if the table was added successfully, false otherwise
+bool DatabaseInterface::addTable(const Certification& certification)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "INSERT INTO table_(status) \
+			VALUES(" + to_string(static_cast<int>(Table::Status::OutOfUse)) + ");" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
+// Certification required:	Manager
+// Description:				Removes a table from the database
+// Returns:					True if the table was removed successfully, false otherwise
+bool DatabaseInterface::removeTable(const Certification& certification, const int tableId)
+{
+	Employee::Type type;
+	if (!getEmployeeType(certification, type))
+		return false;
+
+	if (type == Employee::Type::Manager)
+	{
+		string sql{ "DELETE FROM table_ WHERE id=" + to_string(tableId) + ";" };
+		return querySql(sql);
+	}
+	else
+		return false;
+}
+
 
 
 
@@ -1013,170 +1059,4 @@ bool DatabaseInterface::example(const Certification& certification)
 	else
 		return false;
 }
-
-
-
-
-
-
-
-// Certification required:	Manager
-// Description:				Updates the table as seated
-// Returns:					True if the table was updated succefully, false otherwise
-bool DatabaseInterface::updateTableAsSeated(const Certification& certification, const int tableId)
-{
-	Employee::Type type;
-	if (!getEmployeeType(certification, type))
-		return false;
-
-	if (type == Employee::Type::Manager)
-	{
-		string sql{ "UPDATE table_ \
-			SET status=" + to_string(static_cast<int>(Table::Status::Seated)) + " " +
-			"WHERE id=" + to_string(tableId) + ";" };
-		return querySql(sql);
-	}
-	else
-		return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Certification required:	Manager
-// Description:				Adds a new employee to the database with information provided
-// Returns:					True if the employee was added succefully, false otherwise
-bool DatabaseInterface::addEmployee(const Certification& certification, const Employee::Type type, const string& firstName, const string& lastName, const string& password)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Adds a new menu to the database with parentId as the ID of the parent menu
-// Returns:					True if the menu was added succefully, false otherwise
-bool DatabaseInterface::addMenu(const Certification& certification, const string& name, const int parentId = BASE_MENU_ID)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Adds a new item to the database with menuId as the ID of the menu to associate the item with
-// Returns:					True if the item was added succefully, false otherwise
-bool DatabaseInterface::addItem(const Certification& certification, const int menuId, const string& name, const double price)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Adds a new adjustment group to the database with itemId as the ID of the item to associate the adjustment group with
-// Returns:					True if the adjustment group was added succefully, false otherwise
-bool DatabaseInterface::addAdjustmentGroup(const Certification& certification, const int itemId, const string& name)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Adds a new adjustment to the database with adjustmentGroupId as the ID of the adjustmentGroup to associate the adjustment with
-// Returns:					True if the adjustment was added succefully, false otherwise
-bool DatabaseInterface::addAdjustment(const Certification& certification, const int adjustmentGroupId, const string& name, const double price)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Adds a new table to the database
-// Returns:					True if the table was added succefully, false otherwise
-bool DatabaseInterface::addTable(const Certification& certification)
-{
-
-}
-
-// TO-DO: AUTOCALL THIS FUNCTION WHEN ALL PARTIES AT A TABLE ARE FINISHED
-// Certification required:	Manager, Waiter (If table is seated)
-// Description:				Updates the the table with tableId as the ID of the table as dirty
-// Returns:					True if the table was updated succefully, false otherwise
-bool DatabaseInterface::updateTableAsDirty(const Certification& certification, const int tableId)
-{
-
-}
-
-// Certification required:	Manager, Busser (If table is dirty)
-// Description:				Updates the the table with tableId as the ID of the table as ready
-// Returns:					True if the table was updated succefully, false otherwise
-bool DatabaseInterface::updateTableAsReady(const Certification& certification, const int tableId)
-{
-
-}
-
-// Certification required:	Manager
-// Description:				Updates the the table with tableId as the ID of the table as out of use
-// Returns:					True if the table was updated succefully, false otherwise
-bool DatabaseInterface::updateTableAsOutOfUse(const Certification& certification, const int tableId)
-{
-
-}
-
-// Certification required:	Manager, Host (If party is in wait queue), Waiter (If party is seated)
-// Description:				Updates the party with partyId as the ID of the party to finished, and cancels all outstanding orders associated with the party
-//							If the table the party was seated at is now empty, the table is updated as dirty
-// Returns:					True if the party and table were updated successfully, false otherwise
-bool DatabaseInterface::updatePartyAsFinished(const Certification& certification, const int partyId)
-{
-
-}
-
-// Certification required:	Manager, Waiter
-// Description:				Updates the the order with orderId as the ID of the order as placed
-// Returns:					True if the order was updated succefully, false otherwise
-bool DatabaseInterface::updateOrderAsPlaced(const Certification& certification, const int orderId)
-{
-
-}
-
-// Certification required:	Manager, Cook
-// Description:				Updates the the order with orderId as the ID of the order as made
-// Returns:					True if the order was updated succefully, false otherwise
-bool DatabaseInterface::updateOrderAsMade(const Certification& certification, const int orderId)
-{
-
-}
-
-// Certification required:	Manager, Waiter
-// Description:				Updates the the order with orderId as the ID of the order as delivered
-// Returns:					True if the order was updated succefully, false otherwise
-bool DatabaseInterface::updateOrderAsDelivered(const Certification& certification, const int orderId)
-{
-
-}
-
-// Certification required:	Manager, Waiter
-// Description:				Updates the the order with orderId as the ID of the order as finished and finalizes the amount received for it
-// Returns:					True if the order was updated succefully, false otherwise
-bool DatabaseInterface::updateOrderAsFinished(const Certification& certification, const int orderId)
-{
-
-}*/
+*/
