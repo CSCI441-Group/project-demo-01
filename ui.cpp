@@ -14,6 +14,7 @@
 #define IDC_SUBMIT 10
 
 LRESULT CALLBACK MainWindow(HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK DestoryChildCallback(HWND, LPARAM);
 
 void AddMenu(HWND);
 void StartScreen(HWND);
@@ -78,15 +79,20 @@ LRESULT CALLBACK MainWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 			}
 			break;
 		case FILE_MENU_LOGIN:
+			// declare this statement to destroy and child windows before loading the next window
+			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
 			LoginScreen(hWnd);
 			break;
 		case FILE_MENU_LOGOUT:
+			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
 			break;
 		case LOGIN_BUTTON:
+			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
 			//put login functionality here
 			CreateGroups(hWnd);
 			break;
 		case CANCEL_LOGIN_BUTTON:
+			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
 			StartScreen(hWnd);
 			UpdateWindow(hWnd);
 		}
@@ -102,6 +108,15 @@ LRESULT CALLBACK MainWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 		return DefWindowProcW(hWnd, msg, wp, lp);
 		break;
 	}
+}
+
+// Destroys child window
+BOOL CALLBACK DestoryChildCallback(HWND hwnd, LPARAM lParam)
+{
+	if (hwnd != NULL) {
+		DestroyWindow(hwnd);
+	}
+	return TRUE;
 }
 
 void AddMenu(HWND hWnd)
@@ -174,15 +189,9 @@ void Createopbutton(HWND phWnd)
 	CreateWindowW(L"Button", L"Submit", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, xPos, yPos, 100, 30,
 		phWnd, (HMENU)IDC_SUBMIT, NULL, NULL);
 
-	//CREATES THE RESET BUTTON
-	CreateWindowW(L"Button", L"Reset", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, xPos, yPos, 100, 30,
+	//CREATES THE CANCEL BUTTON
+	CreateWindowW(L"Button", L"Cancel", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, xPos, yPos, 100, 30,
 		phWnd, (HMENU)IDC_RESET, NULL, NULL);
 
-}
-
-void ClearScreen(HWND hWnd)
-{
-	//run if statements to find any open child windows
-	//find way to grab identifier and use CloseWindow function on child windows ie. CloseWindow(WS_CHILD identifier)
 }
 
