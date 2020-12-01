@@ -1,5 +1,7 @@
 #pragma once
 #include <windows.h>
+#include <commctrl.h>
+#include <strsafe.h>
 #include <string>
 #include <iostream>
 
@@ -8,8 +10,8 @@
 #define FILE_MENU_EXIT 3
 #define LOGIN_BUTTON 4
 #define CANCEL_LOGIN_BUTTON 5
-#define	IDC_GROUP1 6
-#define	IDC_GROUP2 7
+#define	IDC_LIST 6
+#define	IDC_STATIC 7
 #define	IDC_GROUP3 8
 #define IDC_RESET 9
 #define IDC_SUBMIT 10
@@ -21,11 +23,10 @@ void AddMenu(HWND);
 void StartScreen(HWND);
 void LoginScreen(HWND);
 void ClearScreen(HWND);
-void CreateGroups(HWND);
-void Createopbutton(HWND);
+void CreateGroups(HWND, WPARAM);
 
+static HWND hwndList, hwndStatic;
 HMENU hMenu;
-HWND cancelButton;
 
 int  windowWidth = 1200,
 windowHeight = 800,
@@ -38,10 +39,27 @@ headingWidth = buttonWidth * 2,
 headingHeight = buttonHeight * 2,
 headingCenterX = (windowWidth / 2 - headingWidth / 2);
 
-char psswrd[256] = "",
-user[256] = "",
-first[256] = "",
-last[256] = "";
+wchar_t buf[128];
+
+//char psswrd[256] = "",
+//user[256] = "",
+//first[256] = "",
+//last[256] = "";
+
+// For testing purposes
+typedef struct {
+	wchar_t first[20];
+	wchar_t last[20];
+	wchar_t type[20];
+} Employees;
+
+Employees employees[] = {
+	{L"Ted", L"Jones", L"waitstaff"},
+	{L"Thomas",L"Train", L"manager"},
+	{L"George",L"Harrison", L"busboy"},
+	{L"Michael",L"Jordan", L"kitchen"},
+	{L"Janis",L"Joplin", L"host"},
+};
 
 int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
@@ -90,6 +108,14 @@ LRESULT CALLBACK MainWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 	switch (msg)
 	{
 	case WM_COMMAND:
+		if (LOWORD(wp) == IDC_LIST) {
+			if (HIWORD(wp) == LBN_SELCHANGE) {
+				int sel = (int)SendMessageW(hwndList, LB_GETCURSEL, 0, 0);
+				StringCbPrintfW(buf, ARRAYSIZE(buf), L"Last Name: %ls \nType: %ls",
+					employees[sel].last, employees[sel].type);
+				SetWindowTextW(hwndStatic, buf);
+			}
+		}
 		switch (LOWORD(wp))
 		{
 		case FILE_MENU_EXIT:
@@ -108,7 +134,7 @@ LRESULT CALLBACK MainWindow(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 		case LOGIN_BUTTON:
 			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
 			//put login functionality here
-			CreateGroups(hWnd);
+			CreateGroups(hWnd, wp);
 			break;
 		case CANCEL_LOGIN_BUTTON:
 			EnumChildWindows(hWnd, DestoryChildCallback, NULL);
@@ -170,23 +196,13 @@ void LoginScreen(HWND hWnd)
 	HWND cancelButton = CreateWindowW(L"BUTTON", L"Cancel", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, centerX, centerY + (buttonHeight + 2) * 4, buttonWidth, buttonHeight, hWnd, (HMENU)CANCEL_LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 }
 
-void CreateTableMenu(HWND hWnd)
+void CreateGroups(HWND hWnd, WPARAM wp)
 {
-	CreateGroups(hWnd);
-}
+	hwndList = CreateWindowW(WC_LISTBOXW, NULL, WS_CHILD | WS_VISIBLE | LBS_NOTIFY, 10, 10, 150, 120, hWnd, (HMENU)IDC_LIST, NULL, NULL);
+	hwndStatic = CreateWindowW(WC_STATICW, NULL, WS_CHILD | WS_VISIBLE, 200, 10, 120, 45, hWnd, (HMENU)IDC_STATIC, NULL, NULL);
 
-void CreateGroups(HWND hWnd)
-{
-	//CREATES THE OUTLINE FOR THE FIRST GROUP
-	CreateWindowW(L"Button", L"TABLE DETAILS", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 30, 50, 400, 250, hWnd,
-		(HMENU)IDC_GROUP1, NULL, NULL);
-
-	//CREATES THE OUTLINE FOR THE SECOND GROUP
-	CreateWindowW(L"Button", L"ORDER DETAILS", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 500, 50, 400,
-		250, hWnd, (HMENU)IDC_GROUP2, NULL, NULL);
-
-	//CREATES THE OUTLINE FOR THE THIRD GROUP
-	CreateWindowW(L"Button", L"TAB", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 30, 320, 670,
-		120, hWnd, (HMENU)IDC_GROUP3, NULL, NULL);
+	for (int i = 0; i < ARRAYSIZE(employees); i++) {
+		SendMessageW(hwndList, LB_ADDSTRING, 0, (LPARAM)employees[i].first);
+	}
 }
 
