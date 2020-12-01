@@ -1,3 +1,4 @@
+#pragma once
 #include <windows.h>
 #include <string>
 #include <iostream>
@@ -26,6 +27,22 @@ void Createopbutton(HWND);
 HMENU hMenu;
 HWND cancelButton;
 
+int  windowWidth = 1200,
+windowHeight = 800,
+buttonWidth = windowWidth / 5,
+buttonHeight = windowHeight / 20,
+bottomButton = windowHeight - 200,
+centerX = (windowWidth / 2 - buttonWidth / 2),
+centerY = (windowHeight / 2 - buttonHeight / 2) - 100,
+headingWidth = buttonWidth * 2,
+headingHeight = buttonHeight * 2,
+headingCenterX = (windowWidth / 2 - headingWidth / 2);
+
+char psswrd[256] = "",
+user[256] = "",
+first[256] = "",
+last[256] = "";
+
 int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 {
 	WNDCLASSW test = { 0 };
@@ -42,11 +59,11 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 
 	hWnd = CreateWindowW(L"WindowClass", 
 		L"Diner POS", 
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | WS_CLIPSIBLINGS, 
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPSIBLINGS, 
 		0, 
 		0, 
-		CW_USEDEFAULT, 
-		CW_USEDEFAULT, 
+		1200, 
+		800, 
 		NULL, 
 		NULL, 
 		NULL, 
@@ -54,7 +71,9 @@ int main(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
 	);
 
 	MSG msg = { 0 };
-	ShowWindow(hWnd, SW_MAXIMIZE);
+
+	// Maybe going full screen isnt a great idea because its harder to grab the center of the screen
+	//ShowWindow(hWnd, SW_MAXIMIZE);
 
 	while (GetMessage(&msg, NULL, NULL, NULL))
 	{
@@ -136,62 +155,38 @@ void AddMenu(HWND hWnd)
 
 void StartScreen(HWND hWnd)
 {
-	RECT rc;
-	GetWindowRect(hWnd, &rc);
-	int xPos = (GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2;
-	int yPos = (GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2;
-
-	CreateWindowW(L"STATIC", L"\nDiner POS", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER, xPos, yPos, 100, 50, hWnd, NULL, NULL, NULL);
-	CreateWindowW(L"STATIC", L"Choose a menu function", WS_VISIBLE | WS_CHILD | SS_CENTER, xPos, yPos, CW_USEDEFAULT, CW_USEDEFAULT, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"STATIC", L"\nDiner POS", WS_VISIBLE | WS_CHILD | WS_BORDER | SS_CENTER, centerX, centerY + (buttonHeight + 2) * 1, buttonWidth, buttonHeight + 10, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"STATIC", L"Choose a menu function", WS_VISIBLE | WS_CHILD | SS_CENTER, centerX, centerY + (buttonHeight + 2) * 2, CW_USEDEFAULT, CW_USEDEFAULT, hWnd, NULL, NULL, NULL);
 }
 
 void LoginScreen(HWND hWnd)
 {
-
-	CreateWindowW(L"STATIC", L"Enter login credentials", WS_VISIBLE | WS_CHILD | SS_CENTER, 150, 150, 200, 20, hWnd, NULL, NULL, NULL);
-	CreateWindowW(L"EDIT", L". . .", WS_VISIBLE | WS_CHILD | WS_BORDER, 100, 175, 300, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"STATIC", L"Enter login credentials", WS_VISIBLE | WS_CHILD | SS_CENTER, centerX, centerY + (buttonHeight + 2)*-1, buttonWidth, buttonHeight, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"EDIT", L"username...", WS_VISIBLE | WS_CHILD | WS_BORDER, centerX, centerY + (buttonHeight + 2) * 1, buttonWidth, buttonHeight, hWnd, NULL, NULL, NULL);
+	CreateWindowW(L"EDIT", L"password...", WS_VISIBLE | WS_CHILD | WS_BORDER, centerX, centerY + (buttonHeight + 2) * 2, buttonWidth, buttonHeight, hWnd, NULL, NULL, NULL);
 	//perhaps use ES_PASSWORD for password child windows
 	//find out how to grab text input in box and read into main
-	HWND loginButton = CreateWindowW(L"BUTTON", L"Login", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 200, 210, 100, 40, hWnd, (HMENU)LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
-	HWND cancelButton = CreateWindowW(L"BUTTON", L"Cancel", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 200, 260, 100, 40, hWnd, (HMENU)CANCEL_LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+	HWND loginButton = CreateWindowW(L"BUTTON", L"Login", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, centerX, centerY + (buttonHeight + 2) * 3, buttonWidth, buttonHeight, hWnd, (HMENU)LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
+	HWND cancelButton = CreateWindowW(L"BUTTON", L"Cancel", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, centerX, centerY + (buttonHeight + 2) * 4, buttonWidth, buttonHeight, hWnd, (HMENU)CANCEL_LOGIN_BUTTON, (HINSTANCE)GetWindowLongPtr(hWnd, GWLP_HINSTANCE), NULL);
 }
 
-void CreateTableMenu(HWND phWnd)
+void CreateTableMenu(HWND hWnd)
 {
-	CreateGroups(phWnd);
-	Createopbutton(phWnd);
+	CreateGroups(hWnd);
 }
 
-void CreateGroups(HWND phWnd)
+void CreateGroups(HWND hWnd)
 {
 	//CREATES THE OUTLINE FOR THE FIRST GROUP
-	CreateWindowW(L"Button", L"TABLE DETAILS", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 30, 50, 400, 250, phWnd,
+	CreateWindowW(L"Button", L"TABLE DETAILS", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 30, 50, 400, 250, hWnd,
 		(HMENU)IDC_GROUP1, NULL, NULL);
 
 	//CREATES THE OUTLINE FOR THE SECOND GROUP
 	CreateWindowW(L"Button", L"ORDER DETAILS", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 500, 50, 400,
-		250, phWnd, (HMENU)IDC_GROUP2, NULL, NULL);
+		250, hWnd, (HMENU)IDC_GROUP2, NULL, NULL);
 
 	//CREATES THE OUTLINE FOR THE THIRD GROUP
 	CreateWindowW(L"Button", L"TAB", WS_CHILD | WS_VISIBLE | BS_GROUPBOX, 30, 320, 670,
-		120, phWnd, (HMENU)IDC_GROUP3, NULL, NULL);
-
-}
-
-void Createopbutton(HWND phWnd)
-{
-	RECT rc;
-	GetWindowRect(phWnd, &rc);
-	int xPos = (GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2;
-	int yPos = (GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2;
-
-	//CREATES THE SUBMIT BUTTON
-	CreateWindowW(L"Button", L"Submit", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, xPos, yPos, 100, 30,
-		phWnd, (HMENU)IDC_SUBMIT, NULL, NULL);
-
-	//CREATES THE CANCEL BUTTON
-	CreateWindowW(L"Button", L"Cancel", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, xPos, yPos, 100, 30,
-		phWnd, (HMENU)IDC_RESET, NULL, NULL);
-
+		120, hWnd, (HMENU)IDC_GROUP3, NULL, NULL);
 }
 
